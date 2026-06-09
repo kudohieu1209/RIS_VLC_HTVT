@@ -106,8 +106,8 @@ def main() -> None:
             "Bản đồ SNR trên mặt phẳng người dùng",
             "Hai bản đồ cho thấy phân bố SNR tại mặt phẳng người dùng trước và sau khi sử dụng vị trí RIS tối ưu.",
         )
-        no_ris_tab, with_ris_tab = st.tabs(["Không RIS", "Có RIS tối ưu"])
-        with no_ris_tab:
+        map_left, map_right = st.columns(2, gap="large")
+        with map_left:
             x_no_ris, y_no_ris, snr_no_ris = run_cached_grid(config, False, best_ris_position)
             st.plotly_chart(
                 make_snr_heatmap(
@@ -120,7 +120,7 @@ def main() -> None:
                 use_container_width=True,
                 config=PLOTLY_CONFIG,
             )
-        with with_ris_tab:
+        with map_right:
             x_with_ris, y_with_ris, snr_with_ris = run_cached_grid(config, True, best_ris_position)
             st.plotly_chart(
                 make_snr_heatmap(
