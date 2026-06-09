@@ -51,12 +51,6 @@ def main() -> None:
             <div class="hero-copy">
                 <div class="eyebrow">RIS / VLC Indoor Link Simulator</div>
                 <h1>Tối ưu hiệu suất hệ thống VLC trong nhà có hỗ trợ RIS</h1>
-                <p>Dashboard mô phỏng tác động của vật cản lên liên kết LoS, đánh giá tuyến phản xạ AP-RIS-PD và tìm vị trí RIS tối ưu theo data rate.</p>
-            </div>
-            <div class="hero-meta">
-                <span>Hệ thống viễn thông</span>
-                <span>Visible Light Communication</span>
-                <span>Reconfigurable Intelligent Surface</span>
             </div>
         </div>
         """,
@@ -844,6 +838,10 @@ def apply_theme() -> None:
         }
         [data-testid="stDecoration"],
         [data-testid="stStatusWidget"],
+        [data-testid="stToolbar"],
+        [data-testid="stActionButton"],
+        [data-testid="manage-app-button"],
+        a[href*="github.com"][target="_blank"],
         #MainMenu,
         footer {
             display: none !important;
@@ -882,9 +880,6 @@ def apply_theme() -> None:
         }
         [data-testid="stHeader"] {
             background: #f4f7fb;
-        }
-        [data-testid="stToolbar"] {
-            color: #17212b;
         }
         .sidebar-title {
             border-bottom: 1px solid var(--border-color);
@@ -961,10 +956,6 @@ def apply_theme() -> None:
             margin-bottom: 0.35rem !important;
         }
         .hero {
-            display: flex;
-            align-items: flex-end;
-            justify-content: space-between;
-            gap: 1.4rem;
             border-bottom: 1px solid var(--border-color);
             padding: 0.25rem 0 1.2rem 0;
             margin-bottom: 0.4rem;
@@ -984,35 +975,6 @@ def apply_theme() -> None:
             font-weight: 780;
             margin: 0;
             max-width: 980px;
-        }
-        .hero p {
-            color: #475569 !important;
-            max-width: 850px;
-            font-size: 1.02rem;
-            line-height: 1.45;
-            margin: 0.65rem 0 0 0;
-        }
-        .hero-meta {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 0.42rem;
-            min-width: 250px;
-        }
-        .hero-meta span {
-            color: #334155 !important;
-            background: #ffffff;
-            border: 1px solid var(--border-color);
-            border-radius: 999px;
-            display: inline-flex;
-            justify-content: center;
-            max-width: 100%;
-            padding: 0.35rem 0.62rem;
-            font-size: 0.82rem;
-            font-weight: 680;
-            line-height: 1.2;
-            text-align: right;
-            white-space: normal;
         }
         .metric-grid {
             display: grid;
@@ -1120,21 +1082,8 @@ def apply_theme() -> None:
             font-weight: 700;
         }
         @media (max-width: 1100px) {
-            .hero {
-                align-items: flex-start;
-                flex-direction: column;
-            }
             .hero h1 {
                 font-size: 2.15rem;
-            }
-            .hero-meta {
-                align-items: flex-start;
-                flex-direction: row;
-                flex-wrap: wrap;
-                min-width: 0;
-            }
-            .hero-meta span {
-                text-align: left;
             }
             .metric-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
