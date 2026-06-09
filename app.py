@@ -144,6 +144,17 @@ def sidebar_config() -> SimulationConfig:
     base = SimulationConfig()
     with st.sidebar:
         st.title("Bảo vệ bài tập lớn hệ thống viễn thông")
+        st.markdown(
+            """
+            **Giảng viên hướng dẫn**  
+            Nguyễn Thành Chuyên
+
+            **Sinh viên thực hiện**  
+            Mai Duy Hiếu - 20223967  
+            Nguyễn Kim Đạt - 20223762
+            """
+        )
+        st.divider()
         st.header("Bảng điều khiển")
         resolution = (61, 61, 70)
 
