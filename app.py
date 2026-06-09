@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from io import StringIO
 
 import numpy as np
 import pandas as pd
@@ -133,14 +132,6 @@ def main() -> None:
                 use_container_width=True,
                 config=PLOTLY_CONFIG,
             )
-
-    with st.container(border=True):
-        render_section_header(
-            "Xuất dữ liệu",
-            "Các bảng kết quả có thể tải về để đối chiếu số liệu, lập phụ lục hoặc tiếp tục xử lý bằng công cụ khác.",
-        )
-        render_downloads(scenario_df, optimization_df)
-
 
 def render_section_header(title: str, description: str) -> None:
     st.markdown(
@@ -753,30 +744,6 @@ def add_polyline(fig: go.Figure, points: np.ndarray, color: str, name: str, note
             hovertemplate=f"{name}<br>{note}<br>Tổng chiều dài: {total_distance:.2f} m<extra></extra>",
         )
     )
-
-
-def render_downloads(scenario_df: pd.DataFrame, optimization_df: pd.DataFrame) -> None:
-    col1, col2 = st.columns(2)
-    col1.download_button(
-        "Tải CSV scenario",
-        data=to_csv(scenario_df),
-        file_name="scenario_results.csv",
-        mime="text/csv",
-        use_container_width=True,
-    )
-    col2.download_button(
-        "Tải CSV quét RIS",
-        data=to_csv(optimization_df),
-        file_name="ris_position_optimization.csv",
-        mime="text/csv",
-        use_container_width=True,
-    )
-
-
-def to_csv(df: pd.DataFrame) -> str:
-    buffer = StringIO()
-    df.to_csv(buffer, index=False)
-    return buffer.getvalue()
 
 
 def style_figure(fig: go.Figure) -> go.Figure:
