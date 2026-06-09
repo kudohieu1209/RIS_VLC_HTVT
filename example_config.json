@@ -1,0 +1,8 @@
+{
+  "pd_position": [2.5, 1.0, 0.85],
+  "ris_x_points": 31,
+  "ris_z_points": 31,
+  "pd_grid_points": 40,
+  "led_transmit_power_w": 1.0,
+  "noise_variance": 1e-14
+}

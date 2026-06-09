@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ris-vlc-simulation"
+version = "0.2.0"
+description = "RIS-assisted indoor visible light communication simulation."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "matplotlib>=3.7",
+    "plotly>=5.20",
+    "streamlit>=1.35",
+]
+
+[project.scripts]
+ris-vlc-sim = "ris_vlc_sim.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["ris_vlc_sim*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
