@@ -796,22 +796,6 @@ def apply_theme() -> None:
             background: rgba(255,255,255,0.94);
             border-right: 1px solid #e5e5ea;
         }
-        section[data-testid="stSidebar"] {
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            transform: translateX(0) !important;
-            margin-left: 0 !important;
-            min-width: 360px !important;
-            width: 360px !important;
-            max-width: 360px !important;
-        }
-        section[data-testid="stSidebar"] > div {
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            width: 360px !important;
-        }
         [data-testid="stSidebar"] h1,
         [data-testid="stSidebar"] h2,
         [data-testid="stSidebar"] h3,
