@@ -143,6 +143,7 @@ def render_section_header(title: str, description: str) -> None:
 def sidebar_config() -> SimulationConfig:
     base = SimulationConfig()
     with st.sidebar:
+        st.title("Bảo vệ bài tập lớn hệ thống viễn thông")
         st.header("Bảng điều khiển")
         resolution = (61, 61, 70)
 
