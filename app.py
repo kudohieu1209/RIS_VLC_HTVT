@@ -42,6 +42,11 @@ ACCENT_COLORS = {
     "risk": "#b42318",
 }
 
+PLOTLY_CONFIG = {
+    "displayModeBar": False,
+    "responsive": True,
+}
+
 
 def main() -> None:
     apply_theme()
@@ -74,43 +79,35 @@ def main() -> None:
 
     render_metrics(scenario_df, best_row)
 
-    left, right = st.columns((1.05, 1.25), gap="large")
-    with left:
-        with st.container(border=True):
-            render_section_header(
-                "So sánh các kịch bản truyền dẫn",
-                "Bảng và biểu đồ thể hiện ảnh hưởng của vật cản đến đường LoS và mức cải thiện khi bổ sung đường phản xạ qua RIS.",
-            )
-            render_scenario_table(scenario_df)
-            st.plotly_chart(make_rate_bar(scenario_df), use_container_width=True)
+    with st.container(border=True):
+        render_section_header(
+            "So sánh các kịch bản truyền dẫn",
+            "Đối chiếu ảnh hưởng của vật cản lên đường LoS và mức cải thiện khi bổ sung đường phản xạ qua RIS.",
+        )
+        render_scenario_table(scenario_df)
+        rate_tab, snr_tab = st.tabs(["Data rate", "SNR"])
+        with rate_tab:
+            st.plotly_chart(make_rate_bar(scenario_df), use_container_width=True, config=PLOTLY_CONFIG)
+        with snr_tab:
+            st.plotly_chart(make_snr_bar(scenario_df), use_container_width=True, config=PLOTLY_CONFIG)
 
-    with right:
-        with st.container(border=True):
-            render_optimization_panel(optimization_df, best_row)
+    with st.container(border=True):
+        render_optimization_panel(optimization_df, best_row)
 
-    mid_left, mid_right = st.columns((1.0, 1.15), gap="large")
-    with mid_left:
-        with st.container(border=True):
-            render_section_header(
-                "Ngưỡng chất lượng liên kết",
-                "SNR được đối chiếu với ngưỡng tham chiếu 10 dB để đánh giá khả năng duy trì liên kết tin cậy.",
-            )
-            st.plotly_chart(make_snr_bar(scenario_df), use_container_width=True)
-    with mid_right:
-        with st.container(border=True):
-            render_section_header(
-                "Hình học phòng 3D",
-                "Mô hình không gian biểu diễn vị trí AP, PD, vật cản, RIS và hai tuyến truyền LoS/AP-RIS-PD.",
-            )
-            st.plotly_chart(make_room_figure(config, best_ris_position), use_container_width=True)
+    with st.container(border=True):
+        render_section_header(
+            "Hình học phòng 3D",
+            "Mô hình không gian biểu diễn vị trí AP, PD, vật cản, RIS và hai tuyến truyền LoS/AP-RIS-PD.",
+        )
+        st.plotly_chart(make_room_figure(config, best_ris_position), use_container_width=True, config=PLOTLY_CONFIG)
 
     with st.container(border=True):
         render_section_header(
             "Bản đồ SNR trên mặt phẳng người dùng",
             "Hai bản đồ cho thấy phân bố SNR tại mặt phẳng người dùng trước và sau khi sử dụng vị trí RIS tối ưu.",
         )
-        map_left, map_right = st.columns(2, gap="large")
-        with map_left:
+        no_ris_tab, with_ris_tab = st.tabs(["Không RIS", "Có RIS tối ưu"])
+        with no_ris_tab:
             x_no_ris, y_no_ris, snr_no_ris = run_cached_grid(config, False, best_ris_position)
             st.plotly_chart(
                 make_snr_heatmap(
@@ -121,8 +118,9 @@ def main() -> None:
                     "Có vật cản, không RIS",
                 ),
                 use_container_width=True,
+                config=PLOTLY_CONFIG,
             )
-        with map_right:
+        with with_ris_tab:
             x_with_ris, y_with_ris, snr_with_ris = run_cached_grid(config, True, best_ris_position)
             st.plotly_chart(
                 make_snr_heatmap(
@@ -133,6 +131,7 @@ def main() -> None:
                     "Có vật cản, dùng RIS tối ưu",
                 ),
                 use_container_width=True,
+                config=PLOTLY_CONFIG,
             )
 
     with st.container(border=True):
@@ -332,7 +331,7 @@ def render_optimization_panel(optimization_df: pd.DataFrame, best_row: pd.Series
         """,
         unsafe_allow_html=True,
     )
-    st.plotly_chart(make_optimization_heatmap(optimization_df, best_row), use_container_width=True)
+    st.plotly_chart(make_optimization_heatmap(optimization_df, best_row), use_container_width=True, config=PLOTLY_CONFIG)
 
 
 def make_rate_bar(scenario_df: pd.DataFrame) -> go.Figure:
@@ -1053,6 +1052,25 @@ def apply_theme() -> None:
         .stSlider [data-testid="stMarkdownContainer"] p {
             color: #17212b !important;
             opacity: 1 !important;
+        }
+        button[data-baseweb="tab"] {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: #334155 !important;
+            font-weight: 720;
+            height: 2.35rem;
+            margin-right: 0.35rem;
+            padding: 0 0.85rem;
+        }
+        button[data-baseweb="tab"][aria-selected="true"] {
+            background: #eff6ff;
+            border-color: #93c5fd;
+            color: #1d4ed8 !important;
+        }
+        div[data-baseweb="tab-list"] {
+            gap: 0.35rem;
+            margin-bottom: 0.35rem;
         }
         div[data-testid="stDataFrame"] {
             border: 1px solid var(--border-color);
