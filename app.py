@@ -836,6 +836,9 @@ def apply_theme() -> None:
             background: rgba(255,255,255,0.96);
             border-right: 1px solid var(--border-color);
         }
+        [data-testid="stSidebar"] > div:first-child {
+            padding-top: 1.05rem;
+        }
         [data-testid="stSidebar"] h1,
         [data-testid="stSidebar"] h2,
         [data-testid="stSidebar"] h3,
@@ -853,24 +856,25 @@ def apply_theme() -> None:
             border-left: 5px solid #2563eb;
             border-radius: 8px;
             box-shadow: 0 10px 24px rgba(37, 99, 235, 0.08);
-            padding: 0.95rem 1rem;
-            margin: 0.15rem 0 0.9rem 0;
+            padding: 0.78rem 0.88rem;
+            margin: 0 0 0.8rem 0;
         }
         .sidebar-title span {
             color: #2563eb !important;
             display: block;
-            font-size: 0.82rem;
+            font-size: 0.76rem;
             font-weight: 820;
             letter-spacing: 0;
             text-transform: uppercase;
-            margin-bottom: 0.32rem;
+            margin-bottom: 0.22rem;
         }
         .sidebar-title h1 {
             color: #0f172a !important;
-            font-size: 1.68rem;
-            line-height: 1.08;
+            font-size: 1.38rem;
+            line-height: 1.12;
             font-weight: 840;
             margin: 0 !important;
+            white-space: nowrap;
         }
         .team-card {
             background: #f8fafc;
