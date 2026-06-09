@@ -427,28 +427,105 @@ def make_room_figure(config: SimulationConfig, ris_position: tuple[float, float,
     ris = np.array(ris_position, dtype=float)
     fig = go.Figure()
 
+    add_room_surfaces(fig, config)
     add_room_edges(fig, config)
     add_obstacle_mesh(fig, config)
-    add_path(fig, ap, pd_pos, "#d00000", "LoS bị chắn")
-    add_polyline(fig, np.vstack([ap, ris, pd_pos]), "#0077b6", "AP-RIS-PD")
-    add_marker(fig, ap, "LED AP", "#f4a261", "circle")
-    add_marker(fig, pd_pos, "PD", "#2a9d8f", "diamond")
-    add_marker(fig, ris, "RIS", "#4361ee", "square")
+    add_ris_panel(fig, ris, config.ris_effective_area)
+    add_path(fig, ap, pd_pos, "#d00000", "LoS bị chắn", "Tuyến trực tiếp LED AP - PD đi qua vùng vật cản.")
+    add_polyline(
+        fig,
+        np.vstack([ap, ris, pd_pos]),
+        "#0077b6",
+        "AP-RIS-PD",
+        "Tuyến phản xạ qua RIS tối ưu trên tường y = 0.",
+    )
+    add_marker(fig, ap, "LED AP", "#f4a261", "circle", "Nguồn phát quang đặt trên trần phòng")
+    add_marker(fig, pd_pos, "PD", "#2a9d8f", "diamond", "Bộ thu tại mặt phẳng người dùng")
+    add_marker(fig, ris, "Tâm RIS", "#4361ee", "square", "Vị trí RIS tối ưu theo data rate")
 
     fig.update_layout(
-        title="Mô hình phòng 3D tương tác",
+        title=dict(text="Mô hình phòng 3D tương tác", x=0.02, xanchor="left"),
         scene=dict(
-            xaxis=dict(title="x (m)", range=[0, config.room_length]),
-            yaxis=dict(title="y (m)", range=[0, config.room_width]),
-            zaxis=dict(title="z (m)", range=[0, config.room_height]),
+            xaxis=dict(title="x (m)", range=[0, config.room_length], backgroundcolor="#f8fafc"),
+            yaxis=dict(title="y (m)", range=[0, config.room_width], backgroundcolor="#f8fafc"),
+            zaxis=dict(title="z (m)", range=[0, config.room_height], backgroundcolor="#ffffff"),
             aspectmode="data",
-            camera=dict(eye=dict(x=1.45, y=-1.75, z=1.05)),
+            camera=dict(eye=dict(x=1.55, y=-1.95, z=1.15), center=dict(x=0, y=0, z=-0.08)),
+            dragmode="orbit",
         ),
-        height=420,
-        margin=dict(l=0, r=0, t=36, b=0),
-        legend=dict(orientation="h", yanchor="bottom", y=0.0),
+        height=520,
+        margin=dict(l=0, r=0, t=48, b=0),
+        legend=dict(orientation="h", yanchor="bottom", y=0.0, x=0.0),
+        uirevision="room-geometry",
+        updatemenus=[
+            dict(
+                type="buttons",
+                direction="right",
+                x=1.0,
+                y=1.08,
+                xanchor="right",
+                yanchor="top",
+                showactive=False,
+                buttons=[
+                    dict(
+                        label="Góc 3D",
+                        method="relayout",
+                        args=[{"scene.camera": dict(eye=dict(x=1.55, y=-1.95, z=1.15), center=dict(x=0, y=0, z=-0.08))}],
+                    ),
+                    dict(
+                        label="Nhìn từ trên",
+                        method="relayout",
+                        args=[{"scene.camera": dict(eye=dict(x=0.0, y=0.0, z=2.6), center=dict(x=0, y=0, z=0))}],
+                    ),
+                    dict(
+                        label="Tường RIS",
+                        method="relayout",
+                        args=[{"scene.camera": dict(eye=dict(x=0.0, y=-2.55, z=0.78), center=dict(x=0, y=0, z=0))}],
+                    ),
+                ],
+            )
+        ],
     )
     return style_figure(fig)
+
+
+def add_room_surfaces(fig: go.Figure, config: SimulationConfig) -> None:
+    x0, x1 = 0.0, config.room_length
+    y0, y1 = 0.0, config.room_width
+    z0, z1 = 0.0, config.room_height
+
+    surfaces = [
+        (
+            "Sàn phòng",
+            np.array([[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0]]),
+            "#dbeafe",
+            0.28,
+            "Mặt sàn 5 m x 5 m",
+        ),
+        (
+            "Tường đặt RIS",
+            np.array([[x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1]]),
+            "#bfdbfe",
+            0.18,
+            "Mặt phẳng quét RIS: y = 0",
+        ),
+    ]
+    for name, vertices, color, opacity, hover in surfaces:
+        fig.add_trace(
+            go.Mesh3d(
+                x=vertices[:, 0],
+                y=vertices[:, 1],
+                z=vertices[:, 2],
+                i=[0, 0],
+                j=[1, 2],
+                k=[2, 3],
+                color=color,
+                opacity=opacity,
+                name=name,
+                hovertemplate=f"{hover}<extra></extra>",
+                showlegend=True,
+            )
+        )
 
 
 def add_room_edges(fig: go.Figure, config: SimulationConfig) -> None:
@@ -476,12 +553,46 @@ def add_room_edges(fig: go.Figure, config: SimulationConfig) -> None:
                 y=points[:, 1],
                 z=points[:, 2],
                 mode="lines",
-                line=dict(color="#777", width=3),
-                name="Phòng" if idx == 0 else None,
+                line=dict(color="#64748b", width=3),
+                name="Khung phòng" if idx == 0 else None,
                 showlegend=idx == 0,
                 hoverinfo="skip",
             )
         )
+
+
+def add_ris_panel(fig: go.Figure, center: np.ndarray, effective_area: float) -> None:
+    panel_width = min(1.25, max(0.55, np.sqrt(effective_area) * 0.55))
+    panel_height = min(1.15, max(0.45, np.sqrt(effective_area) * 0.5))
+    x0, x1 = center[0] - panel_width / 2.0, center[0] + panel_width / 2.0
+    z0, z1 = center[2] - panel_height / 2.0, center[2] + panel_height / 2.0
+    y = center[1] + 0.015
+    vertices = np.array(
+        [
+            [x0, y, z0],
+            [x1, y, z0],
+            [x1, y, z1],
+            [x0, y, z1],
+        ]
+    )
+    fig.add_trace(
+        go.Mesh3d(
+            x=vertices[:, 0],
+            y=vertices[:, 1],
+            z=vertices[:, 2],
+            i=[0, 0],
+            j=[1, 2],
+            k=[2, 3],
+            color="#4361ee",
+            opacity=0.42,
+            name="Bề mặt RIS",
+            hovertemplate=(
+                "Bề mặt RIS<br>"
+                f"Kích thước hiển thị: {panel_width:.2f} m x {panel_height:.2f} m<br>"
+                "Tường y = 0<extra></extra>"
+            ),
+        )
+    )
 
 
 def add_obstacle_mesh(fig: go.Figure, config: SimulationConfig) -> None:
@@ -518,53 +629,64 @@ def add_obstacle_mesh(fig: go.Figure, config: SimulationConfig) -> None:
             j=triangles[:, 1],
             k=triangles[:, 2],
             color="#9b2226",
-            opacity=0.38,
+            opacity=0.46,
             name="Vật cản",
-            hovertemplate="Vật cản<extra></extra>",
+            hovertemplate=(
+                "Vật cản<br>"
+                f"x: {mn[0]:.2f} - {mx[0]:.2f} m<br>"
+                f"y: {mn[1]:.2f} - {mx[1]:.2f} m<br>"
+                f"z: {mn[2]:.2f} - {mx[2]:.2f} m<extra></extra>"
+            ),
         )
     )
 
 
-def add_marker(fig: go.Figure, point: np.ndarray, name: str, color: str, symbol: str) -> None:
+def add_marker(fig: go.Figure, point: np.ndarray, name: str, color: str, symbol: str, note: str) -> None:
     fig.add_trace(
         go.Scatter3d(
             x=[point[0]],
             y=[point[1]],
             z=[point[2]],
             mode="markers+text",
-            marker=dict(size=8, color=color, symbol=symbol),
+            marker=dict(size=9, color=color, symbol=symbol, line=dict(color="#ffffff", width=2)),
             text=[name],
             textposition="top center",
             name=name,
-            hovertemplate=f"{name}<br>x=%{{x:.2f}} m<br>y=%{{y:.2f}} m<br>z=%{{z:.2f}} m<extra></extra>",
+            hovertemplate=(
+                f"{name}<br>{note}<br>"
+                "x=%{x:.2f} m<br>y=%{y:.2f} m<br>z=%{z:.2f} m<extra></extra>"
+            ),
         )
     )
 
 
-def add_path(fig: go.Figure, start: np.ndarray, end: np.ndarray, color: str, name: str) -> None:
+def add_path(fig: go.Figure, start: np.ndarray, end: np.ndarray, color: str, name: str, note: str) -> None:
+    distance = float(np.linalg.norm(end - start))
     fig.add_trace(
         go.Scatter3d(
             x=[start[0], end[0]],
             y=[start[1], end[1]],
             z=[start[2], end[2]],
             mode="lines",
-            line=dict(color=color, width=5),
+            line=dict(color=color, width=6),
             name=name,
-            hovertemplate=f"{name}<extra></extra>",
+            hovertemplate=f"{name}<br>{note}<br>Chiều dài: {distance:.2f} m<extra></extra>",
         )
     )
 
 
-def add_polyline(fig: go.Figure, points: np.ndarray, color: str, name: str) -> None:
+def add_polyline(fig: go.Figure, points: np.ndarray, color: str, name: str, note: str) -> None:
+    segment_lengths = np.linalg.norm(np.diff(points, axis=0), axis=1)
+    total_distance = float(segment_lengths.sum())
     fig.add_trace(
         go.Scatter3d(
             x=points[:, 0],
             y=points[:, 1],
             z=points[:, 2],
             mode="lines",
-            line=dict(color=color, width=6),
+            line=dict(color=color, width=7),
             name=name,
-            hovertemplate=f"{name}<extra></extra>",
+            hovertemplate=f"{name}<br>{note}<br>Tổng chiều dài: {total_distance:.2f} m<extra></extra>",
         )
     )
 
