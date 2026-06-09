@@ -28,15 +28,36 @@ SCENARIO_LABELS = {
     "Scenario 4: No obstacle, with RIS": "S4: LoS + RIS",
 }
 
+SCENARIO_COLORS = {
+    "S1: LoS": "#1b7f5f",
+    "S2: Bị chắn": "#b42318",
+    "S3: Có RIS": "#2563eb",
+    "S4: LoS + RIS": "#7c3aed",
+}
+
+ACCENT_COLORS = {
+    "rate": "#2563eb",
+    "snr": "#0f766e",
+    "baseline": "#7c3aed",
+    "risk": "#b42318",
+}
+
 
 def main() -> None:
     apply_theme()
     st.markdown(
         """
         <div class="hero">
-            <div class="eyebrow">RIS / VLC Indoor Link Simulator</div>
-            <h1>Mô phỏng VLC hỗ trợ RIS</h1>
-            <p>Điều chỉnh tham số, quan sát tác động của vật cản và tìm vị trí RIS tối ưu theo data rate.</p>
+            <div class="hero-copy">
+                <div class="eyebrow">RIS / VLC Indoor Link Simulator</div>
+                <h1>Tối ưu hiệu suất hệ thống VLC trong nhà có hỗ trợ RIS</h1>
+                <p>Dashboard mô phỏng tác động của vật cản lên liên kết LoS, đánh giá tuyến phản xạ AP-RIS-PD và tìm vị trí RIS tối ưu theo data rate.</p>
+            </div>
+            <div class="hero-meta">
+                <span>Hệ thống viễn thông</span>
+                <span>Visible Light Communication</span>
+                <span>Reconfigurable Intelligent Surface</span>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -143,19 +164,33 @@ def render_section_header(title: str, description: str) -> None:
 def sidebar_config() -> SimulationConfig:
     base = SimulationConfig()
     with st.sidebar:
-        st.title("Bảo vệ bài tập lớn hệ thống viễn thông")
         st.markdown(
             """
-            **Giảng viên hướng dẫn**  
-            Nguyễn Thành Chuyên
-
-            **Sinh viên thực hiện**  
-            Mai Duy Hiếu - 20223967  
-            Nguyễn Kim Đạt - 20223762
+            <div class="sidebar-title">
+                <span>Bài tập lớn</span>
+                <h1>Hệ thống viễn thông</h1>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown(
             """
+            <div class="team-card">
+                <div>
+                    <span>Giảng viên hướng dẫn</span>
+                    <strong>Nguyễn Thành Chuyên</strong>
+                </div>
+                <div>
+                    <span>Sinh viên thực hiện</span>
+                    <strong>Mai Duy Hiếu - 20223967</strong>
+                    <strong>Nguyễn Kim Đạt - 20223762</strong>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
         st.divider()
-        st.header("Bảng điều khiển")
+        st.header("Bảng điều khiển mô phỏng")
         resolution = (61, 61, 70)
 
         st.subheader("Bộ thu PD")
@@ -220,11 +255,33 @@ def render_metrics(scenario_df: pd.DataFrame, best_row: pd.Series) -> None:
     ].iloc[0]
     delta_rate = obstacle_with_ris["data_rate_Mbps"] - obstacle_without_ris["data_rate_Mbps"]
 
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Mức tăng data rate khi có RIS", f"{delta_rate:.2f} Mbps")
-    col2.metric("Data rate tại vị trí RIS tối ưu", f"{best_row['data_rate_Mbps']:.2f} Mbps")
-    col3.metric("SNR tại vị trí RIS tối ưu", f"{best_row['SNR_dB']:.2f} dB")
-    col4.metric("Data rate LoS chuẩn", f"{baseline['data_rate_Mbps']:.2f} Mbps")
+    st.markdown(
+        f"""
+        <div class="metric-grid">
+            <div class="metric-card metric-rate">
+                <span>Mức tăng khi dùng RIS</span>
+                <strong>{delta_rate:.2f} Mbps</strong>
+                <small>So với trường hợp LoS bị chắn</small>
+            </div>
+            <div class="metric-card metric-rate">
+                <span>Data rate RIS tối ưu</span>
+                <strong>{best_row['data_rate_Mbps']:.2f} Mbps</strong>
+                <small>Vị trí RIS tốt nhất trong lưới quét</small>
+            </div>
+            <div class="metric-card metric-snr">
+                <span>SNR tại RIS tối ưu</span>
+                <strong>{best_row['SNR_dB']:.2f} dB</strong>
+                <small>Ngưỡng tham chiếu: 10 dB</small>
+            </div>
+            <div class="metric-card metric-baseline">
+                <span>Data rate LoS chuẩn</span>
+                <strong>{baseline['data_rate_Mbps']:.2f} Mbps</strong>
+                <small>Kịch bản không có vật cản</small>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_scenario_table(scenario_df: pd.DataFrame) -> None:
@@ -291,7 +348,8 @@ def make_rate_bar(scenario_df: pd.DataFrame) -> go.Figure:
         go.Bar(
             x=df["label"],
             y=df["data_rate_Mbps"],
-            marker_color=["#2f6f91", "#9b2226", "#3973ac", "#8a5a44"],
+            marker_color=[SCENARIO_COLORS[label] for label in df["label"]],
+            marker_line=dict(color="rgba(255,255,255,0.78)", width=1),
             text=[f"{value:.1f}" for value in df["data_rate_Mbps"]],
             textposition="outside",
             hovertemplate="%{x}<br>Data rate=%{y:.3f} Mbps<extra></extra>",
@@ -314,13 +372,14 @@ def make_snr_bar(scenario_df: pd.DataFrame) -> go.Figure:
         go.Bar(
             x=df["label"],
             y=values,
-            marker_color=["#2f6f91", "#9b2226", "#3973ac", "#8a5a44"],
+            marker_color=[SCENARIO_COLORS[label] for label in df["label"]],
+            marker_line=dict(color="rgba(255,255,255,0.78)", width=1),
             text=["-inf" if not np.isfinite(value) else f"{value:.1f}" for value in df["SNR_dB"]],
             textposition="outside",
             hovertemplate="%{x}<br>SNR=%{text} dB<extra></extra>",
         )
     )
-    fig.add_hline(y=10.0, line_dash="dash", line_color="#444", annotation_text="10 dB")
+    fig.add_hline(y=10.0, line_dash="dash", line_color="#475569", annotation_text="10 dB")
     fig.update_layout(
         title="SNR theo kịch bản",
         yaxis_title="dB",
@@ -340,7 +399,13 @@ def make_optimization_heatmap(optimization_df: pd.DataFrame, best_row: pd.Series
             x=pivot.columns,
             y=pivot.index,
             z=pivot.to_numpy(),
-            colorscale="Viridis",
+            colorscale=[
+                [0.0, "#f8fafc"],
+                [0.22, "#bfdbfe"],
+                [0.5, "#60a5fa"],
+                [0.78, "#2563eb"],
+                [1.0, "#172554"],
+            ],
             colorbar=dict(title="Data rate<br>(Mbps)"),
             hovertemplate="Đặt RIS tại:<br>x=%{x:.2f} m<br>z=%{y:.2f} m<br>Data rate=%{z:.3f} Mbps<extra></extra>",
         )
@@ -349,20 +414,20 @@ def make_optimization_heatmap(optimization_df: pd.DataFrame, best_row: pd.Series
         x=best_x,
         line_width=2,
         line_dash="dot",
-        line_color="#ff3131",
+        line_color=ACCENT_COLORS["risk"],
     )
     fig.add_hline(
         y=best_z,
         line_width=2,
         line_dash="dot",
-        line_color="#ff3131",
+        line_color=ACCENT_COLORS["risk"],
     )
     fig.add_trace(
         go.Scatter(
             x=[best_x],
             y=[best_z],
             mode="markers+text",
-            marker=dict(color="#ff3131", size=13, symbol="x"),
+            marker=dict(color=ACCENT_COLORS["risk"], size=13, symbol="x"),
             text=[f"vị trí tối ưu<br>{best_rate:.1f} Mbps"],
             textposition="top center",
             hovertemplate="Tối ưu x=%{x:.2f} m<br>Tối ưu z=%{y:.2f} m<extra></extra>",
@@ -405,7 +470,13 @@ def make_snr_heatmap(
             y=y_values,
             z=display_grid,
             zmin=floor_db,
-            colorscale="Magma",
+            colorscale=[
+                [0.0, "#111827"],
+                [0.25, "#7f1d1d"],
+                [0.5, "#dc2626"],
+                [0.75, "#f59e0b"],
+                [1.0, "#fef3c7"],
+            ],
             colorbar=dict(title="dB"),
             hovertemplate="PD x=%{x:.2f} m<br>PD y=%{y:.2f} m<br>SNR=%{z:.2f} dB<extra></extra>",
         )
@@ -719,29 +790,32 @@ def style_figure(fig: go.Figure) -> go.Figure:
     fig.update_layout(
         template="plotly_white",
         font=dict(family="Inter, Segoe UI, Arial", size=13, color="#17212b"),
-        title_font=dict(color="#17212b", size=18),
+        title_font=dict(color="#0f172a", size=17),
         paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="#fbfcfd",
-        hoverlabel=dict(bgcolor="#17212b", font_color="#ffffff"),
-        legend=dict(font=dict(color="#17212b")),
+        plot_bgcolor="#f8fafc",
+        hoverlabel=dict(bgcolor="#0f172a", bordercolor="#0f172a", font_color="#ffffff"),
+        legend=dict(font=dict(color="#17212b"), bgcolor="rgba(255,255,255,0.65)"),
+        title=dict(x=0.02, xanchor="left"),
     )
     fig.update_xaxes(
         title_font=dict(color="#344054"),
         tickfont=dict(color="#344054"),
-        gridcolor="#dde5ef",
-        zerolinecolor="#c8d3df",
+        gridcolor="#e2e8f0",
+        zerolinecolor="#cbd5e1",
+        linecolor="#cbd5e1",
     )
     fig.update_yaxes(
         title_font=dict(color="#344054"),
         tickfont=dict(color="#344054"),
-        gridcolor="#dde5ef",
-        zerolinecolor="#c8d3df",
+        gridcolor="#e2e8f0",
+        zerolinecolor="#cbd5e1",
+        linecolor="#cbd5e1",
     )
     if "scene" in fig.layout:
         fig.update_scenes(
-            xaxis=dict(title_font=dict(color="#344054"), tickfont=dict(color="#344054"), gridcolor="#dde5ef"),
-            yaxis=dict(title_font=dict(color="#344054"), tickfont=dict(color="#344054"), gridcolor="#dde5ef"),
-            zaxis=dict(title_font=dict(color="#344054"), tickfont=dict(color="#344054"), gridcolor="#dde5ef"),
+            xaxis=dict(title_font=dict(color="#344054"), tickfont=dict(color="#344054"), gridcolor="#e2e8f0"),
+            yaxis=dict(title_font=dict(color="#344054"), tickfont=dict(color="#344054"), gridcolor="#e2e8f0"),
+            zaxis=dict(title_font=dict(color="#344054"), tickfont=dict(color="#344054"), gridcolor="#e2e8f0"),
         )
     return fig
 
@@ -752,17 +826,19 @@ def apply_theme() -> None:
         <style>
         :root {
             --text-color: #17212b;
-            --background-color: #f6f8fb;
+            --background-color: #f4f7fb;
             --secondary-background-color: #ffffff;
-            --primary-color: #e63946;
+            --primary-color: #2563eb;
+            --muted-color: #64748b;
+            --border-color: #e2e8f0;
         }
         .block-container {
-            padding-top: 1rem !important;
-            padding-bottom: 2.5rem !important;
+            padding-top: 1.15rem !important;
+            padding-bottom: 2.75rem !important;
             max-width: 1500px;
         }
         header[data-testid="stHeader"] {
-            background: rgba(245,245,247,0.86) !important;
+            background: rgba(244,247,251,0.9) !important;
             backdrop-filter: blur(16px);
             height: 2.65rem !important;
         }
@@ -783,7 +859,7 @@ def apply_theme() -> None:
             color: #17212b !important;
         }
         .stApp {
-            background: #f5f5f7;
+            background: #f4f7fb;
             color: #17212b;
         }
         .stApp, .stApp p, .stApp span, .stApp label,
@@ -793,8 +869,8 @@ def apply_theme() -> None:
             color: #17212b !important;
         }
         [data-testid="stSidebar"] {
-            background: rgba(255,255,255,0.94);
-            border-right: 1px solid #e5e5ea;
+            background: rgba(255,255,255,0.96);
+            border-right: 1px solid var(--border-color);
         }
         [data-testid="stSidebar"] h1,
         [data-testid="stSidebar"] h2,
@@ -805,18 +881,66 @@ def apply_theme() -> None:
             opacity: 1 !important;
         }
         [data-testid="stHeader"] {
-            background: #f6f8fb;
+            background: #f4f7fb;
         }
         [data-testid="stToolbar"] {
             color: #17212b;
         }
+        .sidebar-title {
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.2rem 0 0.85rem 0;
+            margin-bottom: 0.85rem;
+        }
+        .sidebar-title span {
+            color: #2563eb !important;
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 760;
+            letter-spacing: 0;
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+        .sidebar-title h1 {
+            color: #0f172a !important;
+            font-size: 1.45rem;
+            line-height: 1.15;
+            font-weight: 780;
+            margin: 0 !important;
+        }
+        .team-card {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.85rem 0.9rem;
+            margin: 0.4rem 0 0.9rem 0;
+        }
+        .team-card div + div {
+            border-top: 1px solid #e5edf7;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+        }
+        .team-card span {
+            color: #64748b !important;
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0;
+            margin-bottom: 0.25rem;
+        }
+        .team-card strong {
+            color: #0f172a !important;
+            display: block;
+            font-size: 0.92rem;
+            line-height: 1.35;
+            font-weight: 720;
+        }
         [data-testid="stMetric"] {
             background: #ffffff;
-            border: 1px solid #e5e5ea;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 14px 16px;
             min-height: 96px;
-            box-shadow: 0 8px 28px rgba(17, 24, 39, 0.045);
+            box-shadow: 0 8px 26px rgba(15, 23, 42, 0.05);
         }
         [data-testid="stMetric"] label,
         [data-testid="stMetric"] [data-testid="stMetricLabel"],
@@ -837,52 +961,127 @@ def apply_theme() -> None:
             margin-bottom: 0.35rem !important;
         }
         .hero {
-            padding: 0.25rem 0 1.1rem 0;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 1.4rem;
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.25rem 0 1.2rem 0;
+            margin-bottom: 0.4rem;
         }
         .hero .eyebrow {
-            color: #667085 !important;
+            color: #2563eb !important;
             font-size: 0.78rem;
-            font-weight: 700;
-            letter-spacing: 0.08em;
+            font-weight: 780;
+            letter-spacing: 0;
             text-transform: uppercase;
             margin-bottom: 0.35rem;
         }
         .hero h1 {
-            color: #111827 !important;
-            font-size: clamp(2.1rem, 4vw, 3.35rem);
-            line-height: 1.04;
+            color: #0f172a !important;
+            font-size: 2.55rem;
+            line-height: 1.08;
             font-weight: 780;
             margin: 0;
+            max-width: 980px;
         }
         .hero p {
-            color: #667085 !important;
-            max-width: 760px;
+            color: #475569 !important;
+            max-width: 850px;
             font-size: 1.02rem;
             line-height: 1.45;
             margin: 0.65rem 0 0 0;
         }
-        div[data-testid="stVerticalBlockBorderWrapper"] {
-            background: rgba(255,255,255,0.92);
-            border: 1px solid #e5e5ea;
+        .hero-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.42rem;
+            min-width: 250px;
+        }
+        .hero-meta span {
+            color: #334155 !important;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 999px;
+            display: inline-flex;
+            justify-content: center;
+            max-width: 100%;
+            padding: 0.35rem 0.62rem;
+            font-size: 0.82rem;
+            font-weight: 680;
+            line-height: 1.2;
+            text-align: right;
+            white-space: normal;
+        }
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.9rem;
+            margin: 1rem 0 0.65rem 0;
+        }
+        .metric-card {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-top: 4px solid #2563eb;
             border-radius: 8px;
-            box-shadow: 0 10px 30px rgba(17, 24, 39, 0.045);
-            padding: 1.05rem 1.1rem 0.8rem 1.1rem;
+            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.055);
+            min-height: 118px;
+            padding: 0.95rem 1rem;
+        }
+        .metric-card span {
+            color: #64748b !important;
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 720;
+            line-height: 1.25;
+            margin-bottom: 0.52rem;
+        }
+        .metric-card strong {
+            color: #0f172a !important;
+            display: block;
+            font-size: 1.55rem;
+            font-weight: 790;
+            line-height: 1.05;
+            margin-bottom: 0.48rem;
+        }
+        .metric-card small {
+            color: #64748b !important;
+            display: block;
+            font-size: 0.8rem;
+            line-height: 1.3;
+        }
+        .metric-rate {
+            border-top-color: #2563eb;
+        }
+        .metric-snr {
+            border-top-color: #0f766e;
+        }
+        .metric-baseline {
+            border-top-color: #7c3aed;
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"] {
+            background: rgba(255,255,255,0.96);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.052);
+            padding: 1rem 1.05rem 0.8rem 1.05rem;
             margin: 0.85rem 0;
         }
         .section-heading {
-            border-bottom: 1px solid #eef1f5;
-            padding-bottom: 0.75rem;
-            margin-bottom: 0.85rem;
+            border-bottom: 1px solid #e8eef6;
+            padding-bottom: 0.7rem;
+            margin-bottom: 0.78rem;
         }
         .section-heading h2 {
-            color: #111827 !important;
+            color: #0f172a !important;
             font-size: 1.18rem;
             line-height: 1.2;
             font-weight: 760;
             margin: 0;
         }
         .section-heading p {
-            color: #667085 !important;
+            color: #64748b !important;
             font-size: 0.94rem;
             line-height: 1.45;
             margin: 0.35rem 0 0 0;
@@ -894,28 +1093,64 @@ def apply_theme() -> None:
             opacity: 1 !important;
         }
         div[data-testid="stDataFrame"] {
-            border: 1px solid #e1e7ef;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             overflow: hidden;
         }
         .explain-box {
-            background: #f9fafb;
-            border: 1px solid #eef1f5;
-            border-radius: 8px;
-            padding: 12px 14px;
+            background: #f8fafc;
+            border-left: 4px solid #2563eb;
+            border-radius: 0 8px 8px 0;
+            padding: 11px 14px;
             margin: 0 0 12px 0;
             color: #17212b;
             line-height: 1.45;
             font-size: 0.94rem;
         }
         .explain-box code {
-            color: #9b2226;
-            background: #f3f6fa;
+            color: #1d4ed8;
+            background: #eff6ff;
             border-radius: 4px;
             padding: 1px 4px;
         }
         .stDownloadButton button {
             border-radius: 8px;
+            border-color: #cbd5e1;
+            color: #0f172a;
+            font-weight: 700;
+        }
+        @media (max-width: 1100px) {
+            .hero {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+            .hero h1 {
+                font-size: 2.15rem;
+            }
+            .hero-meta {
+                align-items: flex-start;
+                flex-direction: row;
+                flex-wrap: wrap;
+                min-width: 0;
+            }
+            .hero-meta span {
+                text-align: left;
+            }
+            .metric-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        @media (max-width: 720px) {
+            .block-container {
+                padding-left: 0.9rem !important;
+                padding-right: 0.9rem !important;
+            }
+            .hero h1 {
+                font-size: 1.85rem;
+            }
+            .metric-grid {
+                grid-template-columns: 1fr;
+            }
         }
         </style>
         """,
