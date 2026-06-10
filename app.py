@@ -41,6 +41,8 @@ ACCENT_COLORS = {
     "risk": "#b42318",
 }
 
+APPLE_FONT_FAMILY = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif'
+
 PLOTLY_CONFIG = {
     "displayModeBar": False,
     "responsive": True,
@@ -97,7 +99,6 @@ def render_hero(config: SimulationConfig) -> None:
             <div class="hero-copy">
                 <div class="eyebrow">RIS / VLC Indoor Link Simulator</div>
                 <h1>Tối ưu hiệu suất hệ thống VLC trong nhà có hỗ trợ RIS</h1>
-                <p>Dashboard mô phỏng kênh VLC trong phòng, đánh giá vật cản LoS và tối ưu vị trí RIS theo SNR/data rate.</p>
                 <div class="hero-meta">
                     <span>Phòng {config.room_length:.0f} x {config.room_width:.0f} x {config.room_height:.0f} m</span>
                     <span>4 kịch bản truyền dẫn</span>
@@ -131,7 +132,7 @@ def render_dashboard_tabs(
         with st.container(border=True):
             render_section_header(
                 "Hình học phòng 3D",
-                "Mô hình không gian biểu diễn vị trí AP, PD, vật cản, RIS và hai tuyến truyền LoS/AP-RIS-PD.",
+                "",
             )
             render_room_3d_panel(config, best_ris_position, best_row)
     with snr_tab:
@@ -191,7 +192,6 @@ def render_section_header(title: str, description: str) -> None:
         f"""
         <div class="section-heading">
             <h2>{title}</h2>
-            <p>{description}</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -258,16 +258,6 @@ def sidebar_config() -> SimulationConfig:
             fov = st.slider("Góc FoV của PD (độ)", 20.0, 85.0, base.pd_fov_deg, 1.0)
             bandwidth_mhz = st.slider("Băng thông (MHz)", 1.0, 100.0, base.modulation_bandwidth_hz / 1e6, 1.0)
             noise_exp = st.slider("Số mũ phương sai nhiễu", -16, -10, -14, 1)
-
-        st.markdown(
-            f"""
-            <div class="control-note">
-                <span>Độ phân giải quét</span>
-                <strong>{resolution[0]} x {resolution[1]} RIS · {resolution[2]} x {resolution[2]} PD</strong>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
 
     return replace(
         base,
@@ -596,17 +586,18 @@ def render_room_3d_panel(
             key="room_3d_technical_details",
         )
 
-    layer_columns = st.columns(7, gap="small")
     layer_specs = [
         ("Mặt sàn/tường", "show_room_surfaces", True),
-        ("Khung phòng", "show_room_edges", True),
         ("Mặt phẳng PD", "show_user_plane", True),
         ("Vật cản", "show_obstacle", True),
         ("LoS", "show_los_path", True),
         ("AP-RIS-PD", "show_ris_path", True),
-        ("Marker/nhãn", "show_markers", True),
     ]
-    selected_layers: dict[str, bool] = {}
+    layer_columns = st.columns(len(layer_specs), gap="small")
+    selected_layers: dict[str, bool] = {
+        "show_room_edges": True,
+        "show_markers": True,
+    }
     for column, (label, option_name, default_value) in zip(layer_columns, layer_specs):
         with column:
             selected_layers[option_name] = st.checkbox(
@@ -1076,7 +1067,7 @@ def add_ris_path_segments(fig: go.Figure, ap: np.ndarray, ris: np.ndarray, pd_po
 def style_figure(fig: go.Figure) -> go.Figure:
     fig.update_layout(
         template="plotly_white",
-        font=dict(family="Inter, Segoe UI, Arial", size=13, color="#17212b"),
+        font=dict(family=APPLE_FONT_FAMILY, size=13, color="#17212b"),
         title_font=dict(color="#0f172a", size=17),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="#f8fafc",
@@ -1173,12 +1164,17 @@ def apply_theme() -> None:
         .stApp {
             background: #f5f7fb;
             color: #17212b;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
         }
         .stApp, .stApp p, .stApp span, .stApp label,
+        .stApp button,
+        .stApp input,
+        .stApp textarea,
         [data-testid="stMarkdownContainer"],
         [data-testid="stSidebar"],
         [data-testid="stSidebar"] * {
             color: #17212b !important;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif !important;
         }
         [data-testid="stSidebar"] {
             background: rgba(255,255,255,0.96);
@@ -1288,27 +1284,6 @@ def apply_theme() -> None:
             line-height: 1.45;
             margin: 0.3rem 0 0 0;
         }
-        .control-note {
-            background: #ffffff;
-            border: 1px solid rgba(148, 163, 184, 0.18);
-            border-radius: 8px;
-            margin-top: 0.85rem;
-            padding: 0.72rem 0.82rem;
-            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.035);
-        }
-        .control-note span {
-            color: #64748b !important;
-            display: block;
-            font-size: 0.76rem;
-            font-weight: 760;
-            margin-bottom: 0.25rem;
-        }
-        .control-note strong {
-            color: #0f172a !important;
-            display: block;
-            font-size: 0.88rem;
-            line-height: 1.25;
-        }
         [data-testid="stExpander"] {
             border: 1px solid rgba(148, 163, 184, 0.22) !important;
             border-radius: 8px !important;
@@ -1370,13 +1345,6 @@ def apply_theme() -> None:
             font-weight: 780;
             margin: 0;
             max-width: 980px;
-        }
-        .hero p {
-            color: #475569 !important;
-            font-size: 1rem;
-            line-height: 1.5;
-            margin: 0.65rem 0 0 0;
-            max-width: 860px;
         }
         .hero-meta {
             display: flex;
