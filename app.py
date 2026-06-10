@@ -70,8 +70,11 @@ class RoomFigureOptions:
 
 def main() -> None:
     apply_theme()
+    render_sidebar_info()
 
-    config = sidebar_config()
+    base_config = SimulationConfig()
+    render_hero(base_config)
+    config = render_simulation_controls(base_config)
 
     try:
         validate_config(config)
@@ -86,7 +89,6 @@ def main() -> None:
         float(best_row["z_RIS_m"]),
     )
 
-    render_hero(config)
     render_metrics(scenario_df, best_row)
     render_dashboard_tabs(config, scenario_df, optimization_df, best_row, best_ris_position)
 
@@ -199,8 +201,7 @@ def render_section_header(title: str, description: str) -> None:
     )
 
 
-def sidebar_config() -> SimulationConfig:
-    base = SimulationConfig()
+def render_sidebar_info() -> None:
     with st.sidebar:
         st.markdown(
             """
@@ -227,31 +228,41 @@ def sidebar_config() -> SimulationConfig:
             """,
             unsafe_allow_html=True,
         )
-        st.divider()
+
+
+def render_simulation_controls(base: SimulationConfig) -> SimulationConfig:
+    resolution = (61, 61, 70)
+
+    with st.container(border=True):
         st.markdown(
             """
             <div class="control-heading">
-                <span>Tham số mô phỏng</span>
-                <strong>Bảng điều khiển</strong>
+                <span>Cấu hình toàn cục</span>
+                <strong>Tham số mô phỏng</strong>
+                <p>Các giá trị dưới đây được dùng để tính lại toàn bộ KPI, tối ưu RIS, mô hình 3D và bản đồ SNR.</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        resolution = (61, 61, 70)
 
-        with st.expander("Bộ thu PD", expanded=True):
+        pd_col, ris_col, optical_col = st.columns(3, gap="large")
+
+        with pd_col:
+            st.markdown('<div class="control-group-title">Bộ thu PD</div>', unsafe_allow_html=True)
             st.caption("Điều chỉnh vị trí người dùng trên mặt phẳng thu.")
             pd_x = st.slider("Tọa độ PD x (m)", 0.1, base.room_length - 0.1, base.pd_position[0], 0.05)
             pd_y = st.slider("Tọa độ PD y (m)", 0.1, base.room_width - 0.1, base.pd_position[1], 0.05)
             pd_z = st.slider("Tọa độ PD z (m)", 0.2, base.room_height - 0.1, base.pd_position[2], 0.05)
 
-        with st.expander("RIS", expanded=True):
+        with ris_col:
+            st.markdown('<div class="control-group-title">RIS</div>', unsafe_allow_html=True)
             st.caption("Tham số phản xạ của bề mặt thông minh trên tường y = 0.")
             ris_area = st.slider("Diện tích (m²)", 0.2, 5.0, base.ris_effective_area, 0.1)
             reflection = st.slider("Hệ số phản xạ", 0.0, 1.0, base.ris_reflection_coefficient, 0.05)
             alignment = st.slider("Độ căn chỉnh", 0.0, 1.0, base.ris_alignment_gain, 0.05)
 
-        with st.expander("Liên kết quang", expanded=True):
+        with optical_col:
+            st.markdown('<div class="control-group-title">Liên kết quang</div>', unsafe_allow_html=True)
             st.caption("Cấu hình công suất phát, FoV, băng thông và nhiễu.")
             power = st.slider("Công suất LED (W)", 0.1, 5.0, base.led_transmit_power_w, 0.1)
             fov = st.slider("Góc FoV của PD (độ)", 20.0, 85.0, base.pd_fov_deg, 1.0)
@@ -260,7 +271,7 @@ def sidebar_config() -> SimulationConfig:
 
         st.markdown(
             f"""
-            <div class="sidebar-note">
+            <div class="control-note">
                 <span>Độ phân giải quét</span>
                 <strong>{resolution[0]} x {resolution[1]} RIS · {resolution[2]} x {resolution[2]} PD</strong>
             </div>
@@ -1279,21 +1290,34 @@ def apply_theme() -> None:
             font-weight: 820;
             line-height: 1.25;
         }
-        .sidebar-note {
+        .control-heading p {
+            color: #64748b !important;
+            font-size: 0.92rem;
+            line-height: 1.45;
+            margin: 0.3rem 0 0 0;
+        }
+        .control-group-title {
+            color: #0f172a !important;
+            font-size: 1rem;
+            font-weight: 790;
+            line-height: 1.25;
+            margin: 0.1rem 0 0.2rem 0;
+        }
+        .control-note {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
             border-radius: 8px;
             margin-top: 0.85rem;
             padding: 0.72rem 0.82rem;
         }
-        .sidebar-note span {
+        .control-note span {
             color: #64748b !important;
             display: block;
             font-size: 0.76rem;
             font-weight: 760;
             margin-bottom: 0.25rem;
         }
-        .sidebar-note strong {
+        .control-note strong {
             color: #0f172a !important;
             display: block;
             font-size: 0.88rem;
