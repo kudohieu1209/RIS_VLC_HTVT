@@ -70,11 +70,7 @@ class RoomFigureOptions:
 
 def main() -> None:
     apply_theme()
-    render_sidebar_info()
-
-    base_config = SimulationConfig()
-    render_hero(base_config)
-    config = render_simulation_controls(base_config)
+    config = sidebar_config()
 
     try:
         validate_config(config)
@@ -89,6 +85,7 @@ def main() -> None:
         float(best_row["z_RIS_m"]),
     )
 
+    render_hero(config)
     render_metrics(scenario_df, best_row)
     render_dashboard_tabs(config, scenario_df, optimization_df, best_row, best_ris_position)
 
@@ -201,7 +198,10 @@ def render_section_header(title: str, description: str) -> None:
     )
 
 
-def render_sidebar_info() -> None:
+def sidebar_config() -> SimulationConfig:
+    base = SimulationConfig()
+    resolution = (61, 61, 70)
+
     with st.sidebar:
         st.markdown(
             """
@@ -228,41 +228,31 @@ def render_sidebar_info() -> None:
             """,
             unsafe_allow_html=True,
         )
-
-
-def render_simulation_controls(base: SimulationConfig) -> SimulationConfig:
-    resolution = (61, 61, 70)
-
-    with st.container(border=True):
+        st.divider()
         st.markdown(
             """
             <div class="control-heading">
-                <span>Cấu hình toàn cục</span>
-                <strong>Tham số mô phỏng</strong>
-                <p>Các giá trị dưới đây được dùng để tính lại toàn bộ KPI, tối ưu RIS, mô hình 3D và bản đồ SNR.</p>
+                <span>Điều chỉnh mô phỏng</span>
+                <strong>Tham số đầu vào</strong>
+                <p>Các thanh trượt này điều khiển KPI, SNR, data rate, tối ưu RIS và mô hình 3D.</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-        pd_col, ris_col, optical_col = st.columns(3, gap="large")
-
-        with pd_col:
-            st.markdown('<div class="control-group-title">Bộ thu PD</div>', unsafe_allow_html=True)
+        with st.expander("Bộ thu PD", expanded=True):
             st.caption("Điều chỉnh vị trí người dùng trên mặt phẳng thu.")
             pd_x = st.slider("Tọa độ PD x (m)", 0.1, base.room_length - 0.1, base.pd_position[0], 0.05)
             pd_y = st.slider("Tọa độ PD y (m)", 0.1, base.room_width - 0.1, base.pd_position[1], 0.05)
             pd_z = st.slider("Tọa độ PD z (m)", 0.2, base.room_height - 0.1, base.pd_position[2], 0.05)
 
-        with ris_col:
-            st.markdown('<div class="control-group-title">RIS</div>', unsafe_allow_html=True)
+        with st.expander("RIS", expanded=True):
             st.caption("Tham số phản xạ của bề mặt thông minh trên tường y = 0.")
             ris_area = st.slider("Diện tích (m²)", 0.2, 5.0, base.ris_effective_area, 0.1)
             reflection = st.slider("Hệ số phản xạ", 0.0, 1.0, base.ris_reflection_coefficient, 0.05)
             alignment = st.slider("Độ căn chỉnh", 0.0, 1.0, base.ris_alignment_gain, 0.05)
 
-        with optical_col:
-            st.markdown('<div class="control-group-title">Liên kết quang</div>', unsafe_allow_html=True)
+        with st.expander("Liên kết quang", expanded=True):
             st.caption("Cấu hình công suất phát, FoV, băng thông và nhiễu.")
             power = st.slider("Công suất LED (W)", 0.1, 5.0, base.led_transmit_power_w, 0.1)
             fov = st.slider("Góc FoV của PD (độ)", 20.0, 85.0, base.pd_fov_deg, 1.0)
@@ -1295,13 +1285,6 @@ def apply_theme() -> None:
             font-size: 0.92rem;
             line-height: 1.45;
             margin: 0.3rem 0 0 0;
-        }
-        .control-group-title {
-            color: #0f172a !important;
-            font-size: 1rem;
-            font-weight: 790;
-            line-height: 1.25;
-            margin: 0.1rem 0 0.2rem 0;
         }
         .control-note {
             background: #f8fafc;
