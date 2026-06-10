@@ -84,10 +84,10 @@ def main() -> None:
             "Đối chiếu ảnh hưởng của vật cản lên đường LoS và mức cải thiện khi bổ sung đường phản xạ qua RIS.",
         )
         render_scenario_table(scenario_df)
-        rate_tab, snr_tab = st.tabs(["Data rate", "SNR"])
-        with rate_tab:
+        rate_col, snr_col = st.columns(2, gap="large")
+        with rate_col:
             st.plotly_chart(make_rate_bar(scenario_df), use_container_width=True, config=PLOTLY_CONFIG)
-        with snr_tab:
+        with snr_col:
             st.plotly_chart(make_snr_bar(scenario_df), use_container_width=True, config=PLOTLY_CONFIG)
 
     with st.container(border=True):
@@ -852,6 +852,14 @@ def apply_theme() -> None:
             color: #17212b !important;
             z-index: 999999 !important;
         }
+        [data-testid="stSidebar"] [data-testid="collapsedControl"],
+        [data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"],
+        [data-testid="stSidebar"] button[aria-label*="close sidebar" i],
+        [data-testid="stSidebar"] button[title*="close sidebar" i] {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+        }
         .stApp {
             background: #f4f7fb;
             color: #17212b;
@@ -876,7 +884,7 @@ def apply_theme() -> None:
             width: 20rem;
         }
         [data-testid="stSidebar"] > div:first-child {
-            padding-top: 1.05rem;
+            padding-top: 0.25rem;
         }
         [data-testid="stSidebar"] h1,
         [data-testid="stSidebar"] h2,
@@ -892,25 +900,25 @@ def apply_theme() -> None:
         .sidebar-title {
             background: linear-gradient(135deg, #eff6ff 0%, #ffffff 70%);
             border: 1px solid #bfdbfe;
-            border-left: 5px solid #2563eb;
+            border-left: 6px solid #2563eb;
             border-radius: 8px;
             box-shadow: 0 10px 24px rgba(37, 99, 235, 0.08);
-            padding: 0.78rem 0.88rem;
-            margin: 0 0 0.8rem 0;
+            padding: 1.08rem 1rem 1.12rem 1.05rem;
+            margin: -0.35rem 0 0.95rem 0;
         }
         .sidebar-title span {
             color: #2563eb !important;
             display: block;
-            font-size: 0.76rem;
+            font-size: 0.84rem;
             font-weight: 820;
             letter-spacing: 0;
             text-transform: uppercase;
-            margin-bottom: 0.22rem;
+            margin-bottom: 0.34rem;
         }
         .sidebar-title h1 {
             color: #0f172a !important;
-            font-size: 1.38rem;
-            line-height: 1.12;
+            font-size: 1.55rem;
+            line-height: 1.08;
             font-weight: 840;
             margin: 0 !important;
             white-space: nowrap;
