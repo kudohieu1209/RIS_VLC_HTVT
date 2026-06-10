@@ -618,7 +618,7 @@ def render_room_3d_panel(
         show_technical_details=show_technical_details,
     )
 
-    los_blocked = blockage_factor(config.ap_position, config.pd_position, config) <= 0.0
+    los_blocked = is_los_blocked_in_room_view(config, options)
     st.markdown(
         f"""
         <div class="room-summary">
@@ -671,18 +671,18 @@ def make_room_figure(
 
     add_ris_panel(fig, ris, config.ris_effective_area, options.show_technical_details)
 
-    los_blocked = blockage_factor(config.ap_position, config.pd_position, config) <= 0.0
+    los_blocked = is_los_blocked_in_room_view(config, options)
     if options.show_los_path:
         add_path(
             fig,
             ap,
             pd_pos,
-            "#d00000",
+            "#d00000" if los_blocked else "#0f766e",
             "LoS bị chắn" if los_blocked else "LoS trực tiếp",
             "Tuyến trực tiếp LED AP - PD đi qua vùng vật cản."
             if los_blocked
             else "Tuyến trực tiếp LED AP - PD không cắt vật cản.",
-            dash="dash",
+            dash="dash" if los_blocked else "solid",
             technical_details=options.show_technical_details,
         )
     if options.show_ris_path:
@@ -708,6 +708,12 @@ def make_room_figure(
         uirevision="room-geometry",
     )
     return style_figure(fig)
+
+
+def is_los_blocked_in_room_view(config: SimulationConfig, options: RoomFigureOptions) -> bool:
+    if not options.show_obstacle:
+        return False
+    return blockage_factor(config.ap_position, config.pd_position, config) <= 0.0
 
 
 def add_room_surfaces(fig: go.Figure, config: SimulationConfig, technical_details: bool) -> None:

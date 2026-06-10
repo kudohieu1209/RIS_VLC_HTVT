@@ -40,3 +40,15 @@ def test_room_figure_applies_selected_camera_view():
     assert camera_eye.x == pytest.approx(0.0)
     assert camera_eye.y == pytest.approx(0.0)
     assert camera_eye.z == pytest.approx(2.8)
+
+
+def test_room_figure_treats_hidden_obstacle_as_clear_los():
+    config = SimulationConfig()
+    options = RoomFigureOptions(show_obstacle=False)
+    fig = make_room_figure(config, config.ris_default_position, options)
+
+    names = trace_names(fig)
+    los_trace = next(trace for trace in fig.data if trace.name == "LoS trực tiếp")
+
+    assert "LoS bị chắn" not in names
+    assert los_trace.line.dash == "solid"
