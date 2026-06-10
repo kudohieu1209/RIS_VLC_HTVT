@@ -314,7 +314,7 @@ def render_optimization_panel(optimization_df: pd.DataFrame, best_row: pd.Series
             <b>Ý nghĩa bản đồ tối ưu RIS:</b>
             mỗi điểm trên heatmap tương ứng với một vị trí đặt RIS trên tường <code>y=0</code>.
             Trục x biểu diễn vị trí ngang của RIS, trục z biểu diễn độ cao của RIS.
-            Thang màu biểu diễn data rate thu được; vùng màu sáng cho thấy vị trí đặt RIS hiệu quả hơn.
+            Thang màu biểu diễn data rate thu được; vùng xanh đậm cho thấy vị trí đặt RIS hiệu quả hơn.
             Với cấu hình hiện tại, vị trí tối ưu là
             <b>x={best_row['x_RIS_m']:.2f} m</b>, <b>z={best_row['z_RIS_m']:.2f} m</b>,
             đạt <b>{best_row['data_rate_Mbps']:.2f} Mbps</b>.
@@ -396,29 +396,50 @@ def make_optimization_heatmap(optimization_df: pd.DataFrame, best_row: pd.Series
     )
     fig.add_vline(
         x=best_x,
-        line_width=2,
+        line_width=1.5,
         line_dash="dot",
         line_color=ACCENT_COLORS["risk"],
+        opacity=0.72,
     )
     fig.add_hline(
         y=best_z,
-        line_width=2,
+        line_width=1.5,
         line_dash="dot",
         line_color=ACCENT_COLORS["risk"],
+        opacity=0.72,
     )
     fig.add_trace(
         go.Scatter(
             x=[best_x],
             y=[best_z],
-            mode="markers+text",
-            marker=dict(color=ACCENT_COLORS["risk"], size=13, symbol="x"),
-            text=[f"vị trí tối ưu<br>{best_rate:.1f} Mbps"],
-            textposition="top center",
-            hovertemplate="Tối ưu x=%{x:.2f} m<br>Tối ưu z=%{y:.2f} m<extra></extra>",
+            mode="markers",
+            marker=dict(color=ACCENT_COLORS["risk"], size=14, symbol="x", line=dict(width=2)),
+            hovertemplate=(
+                "Vị trí tối ưu<br>"
+                "x=%{x:.2f} m<br>"
+                "z=%{y:.2f} m<br>"
+                f"Data rate={best_rate:.2f} Mbps"
+                "<extra></extra>"
+            ),
         )
     )
+    fig.add_annotation(
+        x=best_x,
+        y=best_z,
+        text=f"<b>Vị trí tối ưu</b><br>{best_rate:.2f} Mbps",
+        showarrow=False,
+        xshift=12,
+        yshift=24,
+        xanchor="left",
+        yanchor="bottom",
+        align="left",
+        bgcolor="rgba(255,255,255,0.9)",
+        bordercolor="rgba(184,35,24,0.45)",
+        borderwidth=1,
+        font=dict(size=12, color="#17212b"),
+    )
     fig.update_layout(
-        title="Phân bố data rate theo vị trí RIS",
+        title="Heatmap data rate khi quét vị trí RIS trên tường y=0",
         xaxis_title="Tọa độ x của RIS trên tường y=0 (m)",
         yaxis_title="Tọa độ z của RIS (m)",
         height=405,
@@ -431,7 +452,7 @@ def make_optimization_heatmap(optimization_df: pd.DataFrame, best_row: pd.Series
         y=0.99,
         showarrow=False,
         align="left",
-        text="Màu tối: data rate thấp<br>Màu sáng: data rate cao",
+        text="<b>Xanh đậm:</b> data rate cao<br><b>Xanh nhạt:</b> data rate thấp",
         bgcolor="rgba(255,255,255,0.82)",
         bordercolor="#d8e0ea",
         borderwidth=1,
