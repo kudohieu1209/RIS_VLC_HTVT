@@ -1115,7 +1115,7 @@ def apply_theme() -> None:
             --panel-shadow: 0 18px 42px rgba(15, 23, 42, 0.07);
         }
         .block-container {
-            padding-top: 1rem !important;
+            padding-top: 0.15rem !important;
             padding-bottom: 2.75rem !important;
             max-width: 1480px;
         }
@@ -1332,7 +1332,7 @@ def apply_theme() -> None:
         }
         .hero {
             border-bottom: 1px solid var(--border-color);
-            padding: 0.25rem 0 1rem 0;
+            padding: 0 0 0.85rem 0;
             margin-bottom: 0.65rem;
         }
         .hero .eyebrow {
