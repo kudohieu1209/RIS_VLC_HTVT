@@ -354,7 +354,6 @@ def render_scenario_table(scenario_df: pd.DataFrame) -> None:
     display_df = display_df[
         [
             "scenario",
-            "LoS_blocked",
             "H_LoS",
             "H_RIS",
             "SNR_dB",
@@ -363,7 +362,6 @@ def render_scenario_table(scenario_df: pd.DataFrame) -> None:
     ].rename(
         columns={
             "scenario": "Kịch bản",
-            "LoS_blocked": "Bị chắn",
             "H_LoS": "H LoS",
             "H_RIS": "H RIS",
             "SNR_dB": "SNR dB",
