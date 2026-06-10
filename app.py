@@ -825,7 +825,6 @@ def apply_theme() -> None:
         }
         [data-testid="stDecoration"],
         [data-testid="stStatusWidget"],
-        [data-testid="stToolbar"],
         [data-testid="stActionButton"],
         [data-testid="manage-app-button"],
         a[href*="github.com"][target="_blank"],
@@ -835,13 +834,23 @@ def apply_theme() -> None:
             visibility: hidden !important;
             height: 0 !important;
         }
+        [data-testid="stToolbar"] {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
         [data-testid="collapsedControl"],
         [data-testid="stSidebarCollapsedControl"],
-        button[kind="header"] {
+        [data-testid="stSidebarCollapseButton"],
+        [data-testid="stSidebarExpandButton"],
+        button[kind="header"],
+        button[aria-label*="sidebar" i],
+        button[title*="sidebar" i] {
             display: inline-flex !important;
             visibility: visible !important;
             opacity: 1 !important;
             color: #17212b !important;
+            z-index: 999999 !important;
         }
         .stApp {
             background: #f4f7fb;
@@ -856,6 +865,15 @@ def apply_theme() -> None:
         [data-testid="stSidebar"] {
             background: rgba(255,255,255,0.96);
             border-right: 1px solid var(--border-color);
+            min-width: 20rem;
+            width: 20rem;
+            z-index: 999998;
+        }
+        [data-testid="stSidebar"] > div:first-child,
+        [data-testid="stSidebarContent"] {
+            background: rgba(255,255,255,0.98);
+            min-width: 20rem;
+            width: 20rem;
         }
         [data-testid="stSidebar"] > div:first-child {
             padding-top: 1.05rem;
