@@ -70,17 +70,6 @@ class RoomFigureOptions:
 
 def main() -> None:
     apply_theme()
-    st.markdown(
-        """
-        <div class="hero">
-            <div class="hero-copy">
-                <div class="eyebrow">RIS / VLC Indoor Link Simulator</div>
-                <h1>Tối ưu hiệu suất hệ thống VLC trong nhà có hỗ trợ RIS</h1>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
 
     config = sidebar_config()
 
@@ -97,8 +86,60 @@ def main() -> None:
         float(best_row["z_RIS_m"]),
     )
 
+    render_hero(config)
     render_metrics(scenario_df, best_row)
+    render_dashboard_tabs(config, scenario_df, optimization_df, best_row, best_ris_position)
 
+
+def render_hero(config: SimulationConfig) -> None:
+    st.markdown(
+        f"""
+        <div class="hero">
+            <div class="hero-copy">
+                <div class="eyebrow">RIS / VLC Indoor Link Simulator</div>
+                <h1>Tối ưu hiệu suất hệ thống VLC trong nhà có hỗ trợ RIS</h1>
+                <p>Dashboard mô phỏng kênh VLC trong phòng, đánh giá vật cản LoS và tối ưu vị trí RIS theo SNR/data rate.</p>
+            </div>
+            <div class="hero-strip">
+                <div><span>Không gian</span><strong>{config.room_length:.0f} x {config.room_width:.0f} x {config.room_height:.0f} m</strong></div>
+                <div><span>Kịch bản</span><strong>4 cấu hình truyền dẫn</strong></div>
+                <div><span>RIS</span><strong>Tường y = {config.ris_wall_y:.0f}</strong></div>
+                <div><span>Ngưỡng SNR</span><strong>{config.snr_threshold_db:.0f} dB</strong></div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_dashboard_tabs(
+    config: SimulationConfig,
+    scenario_df: pd.DataFrame,
+    optimization_df: pd.DataFrame,
+    best_row: pd.Series,
+    best_ris_position: tuple[float, float, float],
+) -> None:
+    overview_tab, optimization_tab, room_tab, snr_tab = st.tabs(
+        ["Tổng quan", "Tối ưu RIS", "Mô hình 3D", "Bản đồ SNR"]
+    )
+
+    with overview_tab:
+        render_overview_panel(scenario_df)
+    with optimization_tab:
+        with st.container(border=True):
+            render_optimization_panel(optimization_df, best_row)
+    with room_tab:
+        with st.container(border=True):
+            render_section_header(
+                "Hình học phòng 3D",
+                "Mô hình không gian biểu diễn vị trí AP, PD, vật cản, RIS và hai tuyến truyền LoS/AP-RIS-PD.",
+            )
+            render_room_3d_panel(config, best_ris_position, best_row)
+    with snr_tab:
+        render_snr_maps_panel(config, best_ris_position)
+
+
+def render_overview_panel(scenario_df: pd.DataFrame) -> None:
     with st.container(border=True):
         render_section_header(
             "So sánh các kịch bản truyền dẫn",
@@ -111,16 +152,8 @@ def main() -> None:
         with snr_col:
             st.plotly_chart(make_snr_bar(scenario_df), use_container_width=True, config=PLOTLY_CONFIG)
 
-    with st.container(border=True):
-        render_optimization_panel(optimization_df, best_row)
 
-    with st.container(border=True):
-        render_section_header(
-            "Hình học phòng 3D",
-            "Mô hình không gian biểu diễn vị trí AP, PD, vật cản, RIS và hai tuyến truyền LoS/AP-RIS-PD.",
-        )
-        render_room_3d_panel(config, best_ris_position, best_row)
-
+def render_snr_maps_panel(config: SimulationConfig, best_ris_position: tuple[float, float, float]) -> None:
     with st.container(border=True):
         render_section_header(
             "Bản đồ SNR trên mặt phẳng người dùng",
@@ -195,24 +228,45 @@ def sidebar_config() -> SimulationConfig:
             unsafe_allow_html=True,
         )
         st.divider()
-        st.header("Bảng điều khiển mô phỏng")
+        st.markdown(
+            """
+            <div class="control-heading">
+                <span>Tham số mô phỏng</span>
+                <strong>Bảng điều khiển</strong>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         resolution = (61, 61, 70)
 
-        st.subheader("Bộ thu PD")
-        pd_x = st.slider("Tọa độ PD x (m)", 0.1, base.room_length - 0.1, base.pd_position[0], 0.05)
-        pd_y = st.slider("Tọa độ PD y (m)", 0.1, base.room_width - 0.1, base.pd_position[1], 0.05)
-        pd_z = st.slider("Tọa độ PD z (m)", 0.2, base.room_height - 0.1, base.pd_position[2], 0.05)
+        with st.expander("Bộ thu PD", expanded=True):
+            st.caption("Điều chỉnh vị trí người dùng trên mặt phẳng thu.")
+            pd_x = st.slider("Tọa độ PD x (m)", 0.1, base.room_length - 0.1, base.pd_position[0], 0.05)
+            pd_y = st.slider("Tọa độ PD y (m)", 0.1, base.room_width - 0.1, base.pd_position[1], 0.05)
+            pd_z = st.slider("Tọa độ PD z (m)", 0.2, base.room_height - 0.1, base.pd_position[2], 0.05)
 
-        st.subheader("RIS")
-        ris_area = st.slider("Diện tích (m²)", 0.2, 5.0, base.ris_effective_area, 0.1)
-        reflection = st.slider("Hệ số phản xạ", 0.0, 1.0, base.ris_reflection_coefficient, 0.05)
-        alignment = st.slider("Độ căn chỉnh", 0.0, 1.0, base.ris_alignment_gain, 0.05)
+        with st.expander("RIS", expanded=True):
+            st.caption("Tham số phản xạ của bề mặt thông minh trên tường y = 0.")
+            ris_area = st.slider("Diện tích (m²)", 0.2, 5.0, base.ris_effective_area, 0.1)
+            reflection = st.slider("Hệ số phản xạ", 0.0, 1.0, base.ris_reflection_coefficient, 0.05)
+            alignment = st.slider("Độ căn chỉnh", 0.0, 1.0, base.ris_alignment_gain, 0.05)
 
-        st.subheader("Liên kết quang")
-        power = st.slider("Công suất LED (W)", 0.1, 5.0, base.led_transmit_power_w, 0.1)
-        fov = st.slider("Góc FoV của PD (độ)", 20.0, 85.0, base.pd_fov_deg, 1.0)
-        bandwidth_mhz = st.slider("Băng thông (MHz)", 1.0, 100.0, base.modulation_bandwidth_hz / 1e6, 1.0)
-        noise_exp = st.slider("Số mũ phương sai nhiễu", -16, -10, -14, 1)
+        with st.expander("Liên kết quang", expanded=True):
+            st.caption("Cấu hình công suất phát, FoV, băng thông và nhiễu.")
+            power = st.slider("Công suất LED (W)", 0.1, 5.0, base.led_transmit_power_w, 0.1)
+            fov = st.slider("Góc FoV của PD (độ)", 20.0, 85.0, base.pd_fov_deg, 1.0)
+            bandwidth_mhz = st.slider("Băng thông (MHz)", 1.0, 100.0, base.modulation_bandwidth_hz / 1e6, 1.0)
+            noise_exp = st.slider("Số mũ phương sai nhiễu", -16, -10, -14, 1)
+
+        st.markdown(
+            f"""
+            <div class="sidebar-note">
+                <span>Độ phân giải quét</span>
+                <strong>{resolution[0]} x {resolution[1]} RIS · {resolution[2]} x {resolution[2]} PD</strong>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     return replace(
         base,
@@ -263,6 +317,11 @@ def render_metrics(scenario_df: pd.DataFrame, best_row: pd.Series) -> None:
     st.markdown(
         f"""
         <div class="metric-grid">
+            <div class="metric-card metric-risk">
+                <span>Trạng thái LoS</span>
+                <strong>{'Bị chắn' if obstacle_without_ris['LoS_blocked'] else 'Thông suốt'}</strong>
+                <small>Kịch bản có vật cản, không RIS</small>
+            </div>
             <div class="metric-card metric-rate">
                 <span>Mức tăng khi dùng RIS</span>
                 <strong>{delta_rate:.2f} Mbps</strong>
@@ -1055,16 +1114,20 @@ def apply_theme() -> None:
         <style>
         :root {
             --text-color: #17212b;
-            --background-color: #f4f7fb;
+            --background-color: #f5f7fb;
             --secondary-background-color: #ffffff;
             --primary-color: #2563eb;
+            --success-color: #0f766e;
+            --warning-color: #b45309;
+            --risk-color: #b42318;
             --muted-color: #64748b;
             --border-color: #e2e8f0;
+            --panel-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
         }
         .block-container {
-            padding-top: 1.15rem !important;
+            padding-top: 1rem !important;
             padding-bottom: 2.75rem !important;
-            max-width: 1500px;
+            max-width: 1480px;
         }
         header[data-testid="stHeader"] {
             background: rgba(244,247,251,0.9) !important;
@@ -1109,7 +1172,7 @@ def apply_theme() -> None:
             opacity: 0 !important;
         }
         .stApp {
-            background: #f4f7fb;
+            background: #f5f7fb;
             color: #17212b;
         }
         .stApp, .stApp p, .stApp span, .stApp label,
@@ -1143,14 +1206,14 @@ def apply_theme() -> None:
             opacity: 1 !important;
         }
         [data-testid="stHeader"] {
-            background: #f4f7fb;
+            background: #f5f7fb;
         }
         .sidebar-title {
-            background: linear-gradient(135deg, #eff6ff 0%, #ffffff 70%);
-            border: 1px solid #bfdbfe;
+            background: #ffffff;
+            border: 1px solid #d8e5f5;
             border-left: 6px solid #2563eb;
             border-radius: 8px;
-            box-shadow: 0 10px 24px rgba(37, 99, 235, 0.08);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.055);
             padding: 1.08rem 1rem 1.12rem 1.05rem;
             margin: -0.35rem 0 0.95rem 0;
         }
@@ -1198,6 +1261,60 @@ def apply_theme() -> None:
             line-height: 1.35;
             font-weight: 720;
         }
+        .control-heading {
+            border-left: 4px solid #0f766e;
+            margin: 0.25rem 0 0.7rem 0;
+            padding-left: 0.72rem;
+        }
+        .control-heading span {
+            color: #64748b !important;
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 760;
+            line-height: 1.2;
+            text-transform: uppercase;
+        }
+        .control-heading strong {
+            color: #0f172a !important;
+            display: block;
+            font-size: 1.15rem;
+            font-weight: 820;
+            line-height: 1.25;
+        }
+        .sidebar-note {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-top: 0.85rem;
+            padding: 0.72rem 0.82rem;
+        }
+        .sidebar-note span {
+            color: #64748b !important;
+            display: block;
+            font-size: 0.76rem;
+            font-weight: 760;
+            margin-bottom: 0.25rem;
+        }
+        .sidebar-note strong {
+            color: #0f172a !important;
+            display: block;
+            font-size: 0.88rem;
+            line-height: 1.25;
+        }
+        [data-testid="stExpander"] {
+            border: 1px solid #dbe5f0 !important;
+            border-radius: 8px !important;
+            background: #ffffff !important;
+            margin-bottom: 0.65rem !important;
+        }
+        [data-testid="stExpander"] summary {
+            color: #0f172a !important;
+            font-weight: 780 !important;
+        }
+        [data-testid="stExpander"] [data-testid="stMarkdownContainer"] p {
+            color: #64748b !important;
+            font-size: 0.82rem;
+        }
         [data-testid="stMetric"] {
             background: #ffffff;
             border: 1px solid var(--border-color);
@@ -1226,8 +1343,11 @@ def apply_theme() -> None:
         }
         .hero {
             border-bottom: 1px solid var(--border-color);
-            padding: 0.25rem 0 1.2rem 0;
-            margin-bottom: 0.4rem;
+            display: grid;
+            grid-template-columns: minmax(0, 1.45fr) minmax(430px, 0.95fr);
+            gap: 1.2rem;
+            padding: 0.25rem 0 1.05rem 0;
+            margin-bottom: 0.65rem;
         }
         .hero .eyebrow {
             color: #2563eb !important;
@@ -1239,26 +1359,71 @@ def apply_theme() -> None:
         }
         .hero h1 {
             color: #0f172a !important;
-            font-size: 2.55rem;
+            font-size: 2.35rem;
             line-height: 1.08;
             font-weight: 780;
             margin: 0;
             max-width: 980px;
         }
+        .hero p {
+            color: #475569 !important;
+            font-size: 1rem;
+            line-height: 1.5;
+            margin: 0.65rem 0 0 0;
+            max-width: 860px;
+        }
+        .hero-strip {
+            align-self: end;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.55rem;
+        }
+        .hero-strip div {
+            background: #ffffff;
+            border: 1px solid #dbe5f0;
+            border-left: 4px solid #2563eb;
+            border-radius: 8px;
+            min-height: 70px;
+            padding: 0.66rem 0.72rem;
+        }
+        .hero-strip div:nth-child(2) {
+            border-left-color: #0f766e;
+        }
+        .hero-strip div:nth-child(3) {
+            border-left-color: #7c3aed;
+        }
+        .hero-strip div:nth-child(4) {
+            border-left-color: #b45309;
+        }
+        .hero-strip span {
+            color: #64748b !important;
+            display: block;
+            font-size: 0.76rem;
+            font-weight: 760;
+            margin-bottom: 0.28rem;
+        }
+        .hero-strip strong {
+            color: #0f172a !important;
+            display: block;
+            font-size: 0.98rem;
+            font-weight: 790;
+            line-height: 1.2;
+            overflow-wrap: anywhere;
+        }
         .metric-grid {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 0.9rem;
-            margin: 1rem 0 0.65rem 0;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 0.75rem;
+            margin: 0.95rem 0 0.85rem 0;
         }
         .metric-card {
             background: #ffffff;
             border: 1px solid var(--border-color);
             border-top: 4px solid #2563eb;
             border-radius: 8px;
-            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.055);
-            min-height: 118px;
-            padding: 0.95rem 1rem;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+            min-height: 112px;
+            padding: 0.86rem 0.92rem;
         }
         .metric-card span {
             color: #64748b !important;
@@ -1291,13 +1456,16 @@ def apply_theme() -> None:
         .metric-baseline {
             border-top-color: #7c3aed;
         }
+        .metric-risk {
+            border-top-color: #b42318;
+        }
         div[data-testid="stVerticalBlockBorderWrapper"] {
             background: rgba(255,255,255,0.96);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.052);
-            padding: 1rem 1.05rem 0.8rem 1.05rem;
-            margin: 0.85rem 0;
+            box-shadow: var(--panel-shadow);
+            padding: 1rem 1.05rem 0.9rem 1.05rem;
+            margin: 0.7rem 0 0.85rem 0;
         }
         .section-heading {
             border-bottom: 1px solid #e8eef6;
@@ -1353,23 +1521,24 @@ def apply_theme() -> None:
             opacity: 1 !important;
         }
         button[data-baseweb="tab"] {
-            background: #f8fafc;
+            background: #ffffff;
             border: 1px solid var(--border-color);
             border-radius: 8px;
             color: #334155 !important;
             font-weight: 720;
-            height: 2.35rem;
+            height: 2.5rem;
             margin-right: 0.35rem;
-            padding: 0 0.85rem;
+            padding: 0 1rem;
         }
         button[data-baseweb="tab"][aria-selected="true"] {
             background: #eff6ff;
             border-color: #93c5fd;
             color: #1d4ed8 !important;
+            box-shadow: inset 0 -3px 0 #2563eb;
         }
         div[data-baseweb="tab-list"] {
             gap: 0.35rem;
-            margin-bottom: 0.35rem;
+            margin: 0.3rem 0 0.45rem 0;
         }
         div[data-testid="stDataFrame"] {
             border: 1px solid var(--border-color);
@@ -1399,11 +1568,14 @@ def apply_theme() -> None:
             font-weight: 700;
         }
         @media (max-width: 1100px) {
+            .hero {
+                grid-template-columns: 1fr;
+            }
             .hero h1 {
                 font-size: 2.15rem;
             }
             .metric-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
+                grid-template-columns: repeat(3, minmax(0, 1fr));
             }
             .room-summary {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1416,6 +1588,9 @@ def apply_theme() -> None:
             }
             .hero h1 {
                 font-size: 1.85rem;
+            }
+            .hero-strip {
+                grid-template-columns: 1fr;
             }
             .metric-grid {
                 grid-template-columns: 1fr;
