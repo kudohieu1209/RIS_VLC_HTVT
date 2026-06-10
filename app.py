@@ -99,12 +99,12 @@ def render_hero(config: SimulationConfig) -> None:
                 <div class="eyebrow">RIS / VLC Indoor Link Simulator</div>
                 <h1>Tối ưu hiệu suất hệ thống VLC trong nhà có hỗ trợ RIS</h1>
                 <p>Dashboard mô phỏng kênh VLC trong phòng, đánh giá vật cản LoS và tối ưu vị trí RIS theo SNR/data rate.</p>
-            </div>
-            <div class="hero-strip">
-                <div><span>Không gian</span><strong>{config.room_length:.0f} x {config.room_width:.0f} x {config.room_height:.0f} m</strong></div>
-                <div><span>Kịch bản</span><strong>4 cấu hình truyền dẫn</strong></div>
-                <div><span>RIS</span><strong>Tường y = {config.ris_wall_y:.0f}</strong></div>
-                <div><span>Ngưỡng SNR</span><strong>{config.snr_threshold_db:.0f} dB</strong></div>
+                <div class="hero-meta">
+                    <span>Phòng {config.room_length:.0f} x {config.room_width:.0f} x {config.room_height:.0f} m</span>
+                    <span>4 kịch bản truyền dẫn</span>
+                    <span>RIS trên tường y = {config.ris_wall_y:.0f}</span>
+                    <span>Ngưỡng SNR {config.snr_threshold_db:.0f} dB</span>
+                </div>
             </div>
         </div>
         """,
@@ -1341,10 +1341,7 @@ def apply_theme() -> None:
         }
         .hero {
             border-bottom: 1px solid var(--border-color);
-            display: grid;
-            grid-template-columns: minmax(0, 1.45fr) minmax(430px, 0.95fr);
-            gap: 1.2rem;
-            padding: 0.25rem 0 1.05rem 0;
+            padding: 0.25rem 0 1rem 0;
             margin-bottom: 0.65rem;
         }
         .hero .eyebrow {
@@ -1370,43 +1367,22 @@ def apply_theme() -> None:
             margin: 0.65rem 0 0 0;
             max-width: 860px;
         }
-        .hero-strip {
-            align-self: end;
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 0.55rem;
+        .hero-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.82rem;
         }
-        .hero-strip div {
+        .hero-meta span {
             background: #ffffff;
             border: 1px solid #dbe5f0;
-            border-left: 4px solid #2563eb;
             border-radius: 8px;
-            min-height: 70px;
-            padding: 0.66rem 0.72rem;
-        }
-        .hero-strip div:nth-child(2) {
-            border-left-color: #0f766e;
-        }
-        .hero-strip div:nth-child(3) {
-            border-left-color: #7c3aed;
-        }
-        .hero-strip div:nth-child(4) {
-            border-left-color: #b45309;
-        }
-        .hero-strip span {
-            color: #64748b !important;
-            display: block;
-            font-size: 0.76rem;
-            font-weight: 760;
-            margin-bottom: 0.28rem;
-        }
-        .hero-strip strong {
-            color: #0f172a !important;
-            display: block;
-            font-size: 0.98rem;
-            font-weight: 790;
+            color: #334155 !important;
+            display: inline-flex;
+            font-size: 0.86rem;
+            font-weight: 720;
             line-height: 1.2;
-            overflow-wrap: anywhere;
+            padding: 0.45rem 0.62rem;
         }
         .metric-grid {
             display: grid;
@@ -1566,9 +1542,6 @@ def apply_theme() -> None:
             font-weight: 700;
         }
         @media (max-width: 1100px) {
-            .hero {
-                grid-template-columns: 1fr;
-            }
             .hero h1 {
                 font-size: 2.15rem;
             }
@@ -1587,7 +1560,8 @@ def apply_theme() -> None:
             .hero h1 {
                 font-size: 1.85rem;
             }
-            .hero-strip {
+            .hero-meta {
+                display: grid;
                 grid-template-columns: 1fr;
             }
             .metric-grid {
