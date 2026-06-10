@@ -1121,7 +1121,7 @@ def apply_theme() -> None:
             --risk-color: #b42318;
             --muted-color: #64748b;
             --border-color: #e2e8f0;
-            --panel-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+            --panel-shadow: 0 18px 42px rgba(15, 23, 42, 0.07);
         }
         .block-container {
             padding-top: 1rem !important;
@@ -1209,11 +1209,10 @@ def apply_theme() -> None:
         }
         .sidebar-title {
             background: #ffffff;
-            border: 1px solid #d8e5f5;
-            border-left: 6px solid #2563eb;
+            border: 1px solid rgba(148, 163, 184, 0.2);
             border-radius: 8px;
-            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.055);
-            padding: 1.08rem 1rem 1.12rem 1.05rem;
+            box-shadow: 0 14px 32px rgba(15, 23, 42, 0.055);
+            padding: 1.08rem 1rem 1.12rem 1rem;
             margin: -0.35rem 0 0.95rem 0;
         }
         .sidebar-title span {
@@ -1261,9 +1260,12 @@ def apply_theme() -> None:
             font-weight: 720;
         }
         .control-heading {
-            border-left: 4px solid #0f766e;
             margin: 0.25rem 0 0.7rem 0;
-            padding-left: 0.72rem;
+            padding: 0.78rem 0.86rem;
+            background: #ffffff;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 8px;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.045);
         }
         .control-heading span {
             color: #64748b !important;
@@ -1287,11 +1289,12 @@ def apply_theme() -> None:
             margin: 0.3rem 0 0 0;
         }
         .control-note {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
+            background: #ffffff;
+            border: 1px solid rgba(148, 163, 184, 0.18);
             border-radius: 8px;
             margin-top: 0.85rem;
             padding: 0.72rem 0.82rem;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.035);
         }
         .control-note span {
             color: #64748b !important;
@@ -1307,9 +1310,10 @@ def apply_theme() -> None:
             line-height: 1.25;
         }
         [data-testid="stExpander"] {
-            border: 1px solid #dbe5f0 !important;
+            border: 1px solid rgba(148, 163, 184, 0.22) !important;
             border-radius: 8px !important;
             background: #ffffff !important;
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.035) !important;
             margin-bottom: 0.65rem !important;
         }
         [data-testid="stExpander"] summary {
@@ -1382,7 +1386,7 @@ def apply_theme() -> None:
         }
         .hero-meta span {
             background: #ffffff;
-            border: 1px solid #dbe5f0;
+            border: 1px solid rgba(148, 163, 184, 0.2);
             border-radius: 8px;
             color: #334155 !important;
             display: inline-flex;
@@ -1390,6 +1394,7 @@ def apply_theme() -> None:
             font-weight: 720;
             line-height: 1.2;
             padding: 0.45rem 0.62rem;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.035);
         }
         .metric-grid {
             display: grid;
@@ -1399,10 +1404,9 @@ def apply_theme() -> None:
         }
         .metric-card {
             background: #ffffff;
-            border: 1px solid var(--border-color);
-            border-top: 4px solid #2563eb;
+            border: 1px solid rgba(148, 163, 184, 0.2);
             border-radius: 8px;
-            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
             min-height: 112px;
             padding: 0.86rem 0.92rem;
         }
@@ -1429,20 +1433,20 @@ def apply_theme() -> None:
             line-height: 1.3;
         }
         .metric-rate {
-            border-top-color: #2563eb;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
         }
         .metric-snr {
-            border-top-color: #0f766e;
+            background: linear-gradient(180deg, #ffffff 0%, #f7fdfb 100%);
         }
         .metric-baseline {
-            border-top-color: #7c3aed;
+            background: linear-gradient(180deg, #ffffff 0%, #fbf9ff 100%);
         }
         .metric-risk {
-            border-top-color: #b42318;
+            background: linear-gradient(180deg, #ffffff 0%, #fffafa 100%);
         }
         div[data-testid="stVerticalBlockBorderWrapper"] {
             background: rgba(255,255,255,0.96);
-            border: 1px solid var(--border-color);
+            border: 1px solid rgba(148, 163, 184, 0.2);
             border-radius: 8px;
             box-shadow: var(--panel-shadow);
             padding: 1rem 1.05rem 0.9rem 1.05rem;
@@ -1473,11 +1477,12 @@ def apply_theme() -> None:
             margin: 0.35rem 0 0.9rem 0;
         }
         .room-summary div {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
+            background: #ffffff;
+            border: 1px solid rgba(148, 163, 184, 0.2);
             border-radius: 8px;
             min-height: 66px;
             padding: 0.65rem 0.72rem;
+            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.035);
         }
         .room-summary span {
             color: #64748b !important;
@@ -1512,10 +1517,10 @@ def apply_theme() -> None:
             padding: 0 1rem;
         }
         button[data-baseweb="tab"][aria-selected="true"] {
-            background: #eff6ff;
-            border-color: #93c5fd;
+            background: #ffffff;
+            border-color: rgba(37, 99, 235, 0.28);
             color: #1d4ed8 !important;
-            box-shadow: inset 0 -3px 0 #2563eb;
+            box-shadow: 0 10px 22px rgba(37, 99, 235, 0.12);
         }
         div[data-baseweb="tab-list"] {
             gap: 0.35rem;
@@ -1527,14 +1532,15 @@ def apply_theme() -> None:
             overflow: hidden;
         }
         .explain-box {
-            background: #f8fafc;
-            border-left: 4px solid #2563eb;
-            border-radius: 0 8px 8px 0;
+            background: #ffffff;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 8px;
             padding: 11px 14px;
             margin: 0 0 12px 0;
             color: #17212b;
             line-height: 1.45;
             font-size: 0.94rem;
+            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.035);
         }
         .explain-box code {
             color: #1d4ed8;
