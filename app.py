@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, replace
 
 import numpy as np
 import pandas as pd
@@ -9,7 +9,7 @@ import streamlit as st
 
 from ris_vlc_sim.config import SimulationConfig, validate_config
 from ris_vlc_sim.simulation import run_pd_snr_grid, run_ris_position_optimization, run_scenarios
-from ris_vlc_sim.utils import db_for_plot
+from ris_vlc_sim.utils import blockage_factor, db_for_plot
 
 
 st.set_page_config(
@@ -45,6 +45,27 @@ PLOTLY_CONFIG = {
     "displayModeBar": False,
     "responsive": True,
 }
+
+
+ROOM_VIEW_CAMERAS = {
+    "Góc 3D": dict(eye=dict(x=1.55, y=-1.95, z=1.15), center=dict(x=0, y=0, z=-0.08)),
+    "Nhìn từ trên": dict(eye=dict(x=0.0, y=0.0, z=2.8), center=dict(x=0, y=0, z=0)),
+    "Nhìn tường RIS": dict(eye=dict(x=0.0, y=-2.65, z=0.82), center=dict(x=0, y=0, z=0)),
+    "Nhìn từ phía PD": dict(eye=dict(x=0.0, y=2.55, z=0.95), center=dict(x=0, y=0, z=0)),
+}
+
+
+@dataclass(frozen=True)
+class RoomFigureOptions:
+    view: str = "Góc 3D"
+    show_room_surfaces: bool = True
+    show_room_edges: bool = True
+    show_user_plane: bool = True
+    show_obstacle: bool = True
+    show_los_path: bool = True
+    show_ris_path: bool = True
+    show_markers: bool = True
+    show_technical_details: bool = True
 
 
 def main() -> None:
@@ -98,7 +119,7 @@ def main() -> None:
             "Hình học phòng 3D",
             "Mô hình không gian biểu diễn vị trí AP, PD, vật cản, RIS và hai tuyến truyền LoS/AP-RIS-PD.",
         )
-        st.plotly_chart(make_room_figure(config, best_ris_position), use_container_width=True, config=PLOTLY_CONFIG)
+        render_room_3d_panel(config, best_ris_position, best_row)
 
     with st.container(border=True):
         render_section_header(
@@ -497,27 +518,130 @@ def make_snr_heatmap(
     return style_figure(fig)
 
 
-def make_room_figure(config: SimulationConfig, ris_position: tuple[float, float, float]) -> go.Figure:
+def render_room_3d_panel(
+    config: SimulationConfig,
+    best_ris_position: tuple[float, float, float],
+    best_row: pd.Series,
+) -> None:
+    control_left, control_right = st.columns([2.2, 1.0], gap="large")
+    with control_left:
+        view = st.radio(
+            "Góc nhìn",
+            list(ROOM_VIEW_CAMERAS),
+            horizontal=True,
+            key="room_3d_view",
+        )
+    with control_right:
+        show_technical_details = st.checkbox(
+            "Hiển thị chi tiết kỹ thuật",
+            value=True,
+            key="room_3d_technical_details",
+        )
+
+    layer_columns = st.columns(7, gap="small")
+    layer_specs = [
+        ("Mặt sàn/tường", "show_room_surfaces", True),
+        ("Khung phòng", "show_room_edges", True),
+        ("Mặt phẳng PD", "show_user_plane", True),
+        ("Vật cản", "show_obstacle", True),
+        ("LoS", "show_los_path", True),
+        ("AP-RIS-PD", "show_ris_path", True),
+        ("Marker/nhãn", "show_markers", True),
+    ]
+    selected_layers: dict[str, bool] = {}
+    for column, (label, option_name, default_value) in zip(layer_columns, layer_specs):
+        with column:
+            selected_layers[option_name] = st.checkbox(
+                label,
+                value=default_value,
+                key=f"room_3d_{option_name}",
+            )
+
+    options = RoomFigureOptions(
+        view=view,
+        show_room_surfaces=selected_layers["show_room_surfaces"],
+        show_room_edges=selected_layers["show_room_edges"],
+        show_user_plane=selected_layers["show_user_plane"],
+        show_obstacle=selected_layers["show_obstacle"],
+        show_los_path=selected_layers["show_los_path"],
+        show_ris_path=selected_layers["show_ris_path"],
+        show_markers=selected_layers["show_markers"],
+        show_technical_details=show_technical_details,
+    )
+
+    los_blocked = blockage_factor(config.ap_position, config.pd_position, config) <= 0.0
+    st.markdown(
+        f"""
+        <div class="room-summary">
+            <div><span>AP</span><strong>{format_point(config.ap_position)}</strong></div>
+            <div><span>PD</span><strong>{format_point(config.pd_position)}</strong></div>
+            <div><span>RIS tối ưu</span><strong>{format_point(best_ris_position)}</strong></div>
+            <div><span>LoS</span><strong>{'Bị chắn' if los_blocked else 'Thông suốt'}</strong></div>
+            <div><span>Data rate / SNR</span><strong>{best_row['data_rate_Mbps']:.2f} Mbps · {best_row['SNR_dB']:.2f} dB</strong></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.plotly_chart(
+        make_room_figure(config, best_ris_position, options),
+        use_container_width=True,
+        config=PLOTLY_CONFIG,
+    )
+
+
+def format_point(point: tuple[float, float, float]) -> str:
+    return f"({point[0]:.2f}, {point[1]:.2f}, {point[2]:.2f}) m"
+
+
+def camera_for_view(view: str) -> dict:
+    return ROOM_VIEW_CAMERAS.get(view, ROOM_VIEW_CAMERAS["Góc 3D"])
+
+
+def make_room_figure(
+    config: SimulationConfig,
+    ris_position: tuple[float, float, float],
+    options: RoomFigureOptions | None = None,
+) -> go.Figure:
+    if options is None:
+        options = RoomFigureOptions()
+
     ap = np.array(config.ap_position, dtype=float)
     pd_pos = np.array(config.pd_position, dtype=float)
     ris = np.array(ris_position, dtype=float)
     fig = go.Figure()
 
-    add_room_surfaces(fig, config)
-    add_room_edges(fig, config)
-    add_obstacle_mesh(fig, config)
-    add_ris_panel(fig, ris, config.ris_effective_area)
-    add_path(fig, ap, pd_pos, "#d00000", "LoS bị chắn", "Tuyến trực tiếp LED AP - PD đi qua vùng vật cản.")
-    add_polyline(
-        fig,
-        np.vstack([ap, ris, pd_pos]),
-        "#0077b6",
-        "AP-RIS-PD",
-        "Tuyến phản xạ qua RIS tối ưu trên tường y = 0.",
-    )
-    add_marker(fig, ap, "LED AP", "#f4a261", "circle", "Nguồn phát quang đặt trên trần phòng")
-    add_marker(fig, pd_pos, "PD", "#2a9d8f", "diamond", "Bộ thu tại mặt phẳng người dùng")
-    add_marker(fig, ris, "Tâm RIS", "#4361ee", "square", "Vị trí RIS tối ưu theo data rate")
+    if options.show_room_surfaces:
+        add_room_surfaces(fig, config, options.show_technical_details)
+    if options.show_user_plane:
+        add_user_plane(fig, config, options.show_technical_details)
+    if options.show_room_edges:
+        add_room_edges(fig, config)
+    if options.show_obstacle:
+        add_obstacle_mesh(fig, config, options.show_technical_details)
+        add_obstacle_edges(fig, config)
+
+    add_ris_panel(fig, ris, config.ris_effective_area, options.show_technical_details)
+
+    los_blocked = blockage_factor(config.ap_position, config.pd_position, config) <= 0.0
+    if options.show_los_path:
+        add_path(
+            fig,
+            ap,
+            pd_pos,
+            "#d00000",
+            "LoS bị chắn" if los_blocked else "LoS trực tiếp",
+            "Tuyến trực tiếp LED AP - PD đi qua vùng vật cản."
+            if los_blocked
+            else "Tuyến trực tiếp LED AP - PD không cắt vật cản.",
+            dash="dash",
+            technical_details=options.show_technical_details,
+        )
+    if options.show_ris_path:
+        add_ris_path_segments(fig, ap, ris, pd_pos, options.show_technical_details)
+    if options.show_markers:
+        add_marker(fig, ap, "LED AP", "#f4a261", "circle", "Nguồn phát quang đặt trên trần phòng", options.show_technical_details)
+        add_marker(fig, pd_pos, "PD", "#2a9d8f", "diamond", "Bộ thu tại mặt phẳng người dùng", options.show_technical_details)
+        add_marker(fig, ris, "Tâm RIS", "#4361ee", "square", "Vị trí RIS tối ưu theo data rate", options.show_technical_details)
 
     fig.update_layout(
         title=dict(text="Mô hình phòng 3D tương tác", x=0.02, xanchor="left"),
@@ -526,46 +650,18 @@ def make_room_figure(config: SimulationConfig, ris_position: tuple[float, float,
             yaxis=dict(title="y (m)", range=[0, config.room_width], backgroundcolor="#f8fafc"),
             zaxis=dict(title="z (m)", range=[0, config.room_height], backgroundcolor="#ffffff"),
             aspectmode="data",
-            camera=dict(eye=dict(x=1.55, y=-1.95, z=1.15), center=dict(x=0, y=0, z=-0.08)),
+            camera=camera_for_view(options.view),
             dragmode="orbit",
         ),
-        height=520,
+        height=620,
         margin=dict(l=0, r=0, t=48, b=0),
-        legend=dict(orientation="h", yanchor="bottom", y=0.0, x=0.0),
+        legend=dict(orientation="h", yanchor="top", y=-0.02, x=0.0, bgcolor="rgba(255,255,255,0.82)"),
         uirevision="room-geometry",
-        updatemenus=[
-            dict(
-                type="buttons",
-                direction="right",
-                x=1.0,
-                y=1.08,
-                xanchor="right",
-                yanchor="top",
-                showactive=False,
-                buttons=[
-                    dict(
-                        label="Góc 3D",
-                        method="relayout",
-                        args=[{"scene.camera": dict(eye=dict(x=1.55, y=-1.95, z=1.15), center=dict(x=0, y=0, z=-0.08))}],
-                    ),
-                    dict(
-                        label="Nhìn từ trên",
-                        method="relayout",
-                        args=[{"scene.camera": dict(eye=dict(x=0.0, y=0.0, z=2.6), center=dict(x=0, y=0, z=0))}],
-                    ),
-                    dict(
-                        label="Tường RIS",
-                        method="relayout",
-                        args=[{"scene.camera": dict(eye=dict(x=0.0, y=-2.55, z=0.78), center=dict(x=0, y=0, z=0))}],
-                    ),
-                ],
-            )
-        ],
     )
     return style_figure(fig)
 
 
-def add_room_surfaces(fig: go.Figure, config: SimulationConfig) -> None:
+def add_room_surfaces(fig: go.Figure, config: SimulationConfig, technical_details: bool) -> None:
     x0, x1 = 0.0, config.room_length
     y0, y1 = 0.0, config.room_width
     z0, z1 = 0.0, config.room_height
@@ -598,10 +694,41 @@ def add_room_surfaces(fig: go.Figure, config: SimulationConfig) -> None:
                 color=color,
                 opacity=opacity,
                 name=name,
-                hovertemplate=f"{hover}<extra></extra>",
+                hovertemplate=f"{hover}<extra></extra>" if technical_details else f"{name}<extra></extra>",
                 showlegend=True,
             )
         )
+
+
+def add_user_plane(fig: go.Figure, config: SimulationConfig, technical_details: bool) -> None:
+    z = float(config.user_plane_z)
+    vertices = np.array(
+        [
+            [0.0, 0.0, z],
+            [config.room_length, 0.0, z],
+            [config.room_length, config.room_width, z],
+            [0.0, config.room_width, z],
+        ]
+    )
+    fig.add_trace(
+        go.Mesh3d(
+            x=vertices[:, 0],
+            y=vertices[:, 1],
+            z=vertices[:, 2],
+            i=[0, 0],
+            j=[1, 2],
+            k=[2, 3],
+            color="#99f6e4",
+            opacity=0.16,
+            name="Mặt phẳng PD",
+            hovertemplate=(
+                f"Mặt phẳng người dùng<br>z = {z:.2f} m<extra></extra>"
+                if technical_details
+                else "Mặt phẳng PD<extra></extra>"
+            ),
+            showlegend=True,
+        )
+    )
 
 
 def add_room_edges(fig: go.Figure, config: SimulationConfig) -> None:
@@ -637,7 +764,7 @@ def add_room_edges(fig: go.Figure, config: SimulationConfig) -> None:
         )
 
 
-def add_ris_panel(fig: go.Figure, center: np.ndarray, effective_area: float) -> None:
+def add_ris_panel(fig: go.Figure, center: np.ndarray, effective_area: float, technical_details: bool) -> None:
     panel_width = min(1.25, max(0.55, np.sqrt(effective_area) * 0.55))
     panel_height = min(1.15, max(0.45, np.sqrt(effective_area) * 0.5))
     x0, x1 = center[0] - panel_width / 2.0, center[0] + panel_width / 2.0
@@ -660,20 +787,74 @@ def add_ris_panel(fig: go.Figure, center: np.ndarray, effective_area: float) -> 
             j=[1, 2],
             k=[2, 3],
             color="#4361ee",
-            opacity=0.42,
+            opacity=0.54,
             name="Bề mặt RIS",
             hovertemplate=(
                 "Bề mặt RIS<br>"
                 f"Kích thước hiển thị: {panel_width:.2f} m x {panel_height:.2f} m<br>"
-                "Tường y = 0<extra></extra>"
+                "Tường y = 0<br>Pháp tuyến: +y<extra></extra>"
+                if technical_details
+                else "Bề mặt RIS<extra></extra>"
+            ),
+        )
+    )
+    add_rectangle_edges(fig, vertices, "#1d4ed8", "Viền RIS", 5)
+    normal_end = center + np.array([0.0, 0.56, 0.0])
+    fig.add_trace(
+        go.Scatter3d(
+            x=[center[0], normal_end[0]],
+            y=[center[1], normal_end[1]],
+            z=[center[2], normal_end[2]],
+            mode="lines+markers",
+            line=dict(color="#1d4ed8", width=6),
+            marker=dict(size=[1, 5], color="#1d4ed8"),
+            name="Pháp tuyến RIS +y",
+            hovertemplate=(
+                "Hướng phản xạ chuẩn của RIS<br>Pháp tuyến +y<extra></extra>"
+                if technical_details
+                else "Pháp tuyến RIS +y<extra></extra>"
+            ),
+            showlegend=True,
+        )
+    )
+
+
+def add_obstacle_mesh(fig: go.Figure, config: SimulationConfig, technical_details: bool) -> None:
+    mn = np.array(config.obstacle_min, dtype=float)
+    mx = np.array(config.obstacle_max, dtype=float)
+    vertices, triangles = box_vertices_and_triangles(mn, mx)
+    fig.add_trace(
+        go.Mesh3d(
+            x=vertices[:, 0],
+            y=vertices[:, 1],
+            z=vertices[:, 2],
+            i=triangles[:, 0],
+            j=triangles[:, 1],
+            k=triangles[:, 2],
+            color="#9b2226",
+            opacity=0.42,
+            name="Vật cản",
+            hovertemplate=(
+                "Vật cản<br>"
+                f"x: {mn[0]:.2f} - {mx[0]:.2f} m<br>"
+                f"y: {mn[1]:.2f} - {mx[1]:.2f} m<br>"
+                f"z: {mn[2]:.2f} - {mx[2]:.2f} m<extra></extra>"
+                if technical_details
+                else "Vật cản<extra></extra>"
             ),
         )
     )
 
 
-def add_obstacle_mesh(fig: go.Figure, config: SimulationConfig) -> None:
-    mn = np.array(config.obstacle_min, dtype=float)
-    mx = np.array(config.obstacle_max, dtype=float)
+def add_obstacle_edges(fig: go.Figure, config: SimulationConfig) -> None:
+    vertices, _ = box_vertices_and_triangles(
+        np.array(config.obstacle_min, dtype=float),
+        np.array(config.obstacle_max, dtype=float),
+    )
+    add_box_edges(fig, vertices, "#7f1d1d", "Viền vật cản", 4)
+
+
+def box_vertices_and_triangles(mn: np.ndarray, mx: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     vertices = np.array(
         [
             [mn[0], mn[1], mn[2]],
@@ -696,28 +877,53 @@ def add_obstacle_mesh(fig: go.Figure, config: SimulationConfig) -> None:
             [3, 0, 4], [3, 4, 7],
         ]
     )
+    return vertices, triangles
+
+
+def add_rectangle_edges(fig: go.Figure, vertices: np.ndarray, color: str, name: str, width: int) -> None:
+    edge_order = [0, 1, 2, 3, 0]
+    points = vertices[edge_order]
     fig.add_trace(
-        go.Mesh3d(
-            x=vertices[:, 0],
-            y=vertices[:, 1],
-            z=vertices[:, 2],
-            i=triangles[:, 0],
-            j=triangles[:, 1],
-            k=triangles[:, 2],
-            color="#9b2226",
-            opacity=0.46,
-            name="Vật cản",
-            hovertemplate=(
-                "Vật cản<br>"
-                f"x: {mn[0]:.2f} - {mx[0]:.2f} m<br>"
-                f"y: {mn[1]:.2f} - {mx[1]:.2f} m<br>"
-                f"z: {mn[2]:.2f} - {mx[2]:.2f} m<extra></extra>"
-            ),
+        go.Scatter3d(
+            x=points[:, 0],
+            y=points[:, 1],
+            z=points[:, 2],
+            mode="lines",
+            line=dict(color=color, width=width),
+            name=name,
+            hoverinfo="skip",
+            showlegend=False,
         )
     )
 
 
-def add_marker(fig: go.Figure, point: np.ndarray, name: str, color: str, symbol: str, note: str) -> None:
+def add_box_edges(fig: go.Figure, vertices: np.ndarray, color: str, name: str, width: int) -> None:
+    edges = [(0, 1), (1, 2), (2, 3), (3, 0), (4, 5), (5, 6), (6, 7), (7, 4), (0, 4), (1, 5), (2, 6), (3, 7)]
+    for idx, (start, end) in enumerate(edges):
+        points = vertices[[start, end]]
+        fig.add_trace(
+            go.Scatter3d(
+                x=points[:, 0],
+                y=points[:, 1],
+                z=points[:, 2],
+                mode="lines",
+                line=dict(color=color, width=width),
+                name=name if idx == 0 else None,
+                showlegend=False,
+                hoverinfo="skip",
+            )
+        )
+
+
+def add_marker(
+    fig: go.Figure,
+    point: np.ndarray,
+    name: str,
+    color: str,
+    symbol: str,
+    note: str,
+    technical_details: bool,
+) -> None:
     fig.add_trace(
         go.Scatter3d(
             x=[point[0]],
@@ -731,12 +937,23 @@ def add_marker(fig: go.Figure, point: np.ndarray, name: str, color: str, symbol:
             hovertemplate=(
                 f"{name}<br>{note}<br>"
                 "x=%{x:.2f} m<br>y=%{y:.2f} m<br>z=%{z:.2f} m<extra></extra>"
+                if technical_details
+                else f"{name}<extra></extra>"
             ),
         )
     )
 
 
-def add_path(fig: go.Figure, start: np.ndarray, end: np.ndarray, color: str, name: str, note: str) -> None:
+def add_path(
+    fig: go.Figure,
+    start: np.ndarray,
+    end: np.ndarray,
+    color: str,
+    name: str,
+    note: str,
+    dash: str = "solid",
+    technical_details: bool = True,
+) -> None:
     distance = float(np.linalg.norm(end - start))
     fig.add_trace(
         go.Scatter3d(
@@ -744,27 +961,58 @@ def add_path(fig: go.Figure, start: np.ndarray, end: np.ndarray, color: str, nam
             y=[start[1], end[1]],
             z=[start[2], end[2]],
             mode="lines",
-            line=dict(color=color, width=6),
+            line=dict(color=color, width=7, dash=dash),
             name=name,
-            hovertemplate=f"{name}<br>{note}<br>Chiều dài: {distance:.2f} m<extra></extra>",
+            hovertemplate=(
+                f"{name}<br>{note}<br>Chiều dài: {distance:.2f} m<extra></extra>"
+                if technical_details
+                else f"{name}<extra></extra>"
+            ),
         )
     )
 
 
-def add_polyline(fig: go.Figure, points: np.ndarray, color: str, name: str, note: str) -> None:
-    segment_lengths = np.linalg.norm(np.diff(points, axis=0), axis=1)
-    total_distance = float(segment_lengths.sum())
-    fig.add_trace(
-        go.Scatter3d(
-            x=points[:, 0],
-            y=points[:, 1],
-            z=points[:, 2],
-            mode="lines",
-            line=dict(color=color, width=7),
-            name=name,
-            hovertemplate=f"{name}<br>{note}<br>Tổng chiều dài: {total_distance:.2f} m<extra></extra>",
+def add_ris_path_segments(fig: go.Figure, ap: np.ndarray, ris: np.ndarray, pd_pos: np.ndarray, technical_details: bool) -> None:
+    segments = [
+        ("AP → RIS", ap, ris, "#0ea5e9"),
+        ("RIS → PD", ris, pd_pos, "#0369a1"),
+    ]
+    total_distance = float(np.linalg.norm(ris - ap) + np.linalg.norm(pd_pos - ris))
+    for idx, (name, start, end, color) in enumerate(segments):
+        segment_distance = float(np.linalg.norm(end - start))
+        fig.add_trace(
+            go.Scatter3d(
+                x=[start[0], end[0]],
+                y=[start[1], end[1]],
+                z=[start[2], end[2]],
+                mode="lines",
+                line=dict(color=color, width=8),
+                name=name,
+                legendgroup="ris-path",
+                showlegend=True,
+                hovertemplate=(
+                    f"{name}<br>"
+                    f"Đoạn: {segment_distance:.2f} m<br>"
+                    f"Tổng AP-RIS-PD: {total_distance:.2f} m<extra></extra>"
+                    if technical_details
+                    else f"{name}<extra></extra>"
+                ),
+            )
         )
-    )
+        if idx == 0:
+            fig.add_trace(
+                go.Scatter3d(
+                    x=[ris[0]],
+                    y=[ris[1]],
+                    z=[ris[2]],
+                    mode="markers",
+                    marker=dict(size=5, color="#0f172a"),
+                    name="Điểm phản xạ RIS",
+                    legendgroup="ris-path",
+                    showlegend=False,
+                    hoverinfo="skip",
+                )
+            )
 
 
 def style_figure(fig: go.Figure) -> go.Figure:
@@ -1069,6 +1317,35 @@ def apply_theme() -> None:
             line-height: 1.45;
             margin: 0.35rem 0 0 0;
         }
+        .room-summary {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 0.55rem;
+            margin: 0.35rem 0 0.9rem 0;
+        }
+        .room-summary div {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            min-height: 66px;
+            padding: 0.65rem 0.72rem;
+        }
+        .room-summary span {
+            color: #64748b !important;
+            display: block;
+            font-size: 0.76rem;
+            font-weight: 760;
+            line-height: 1.2;
+            margin-bottom: 0.3rem;
+        }
+        .room-summary strong {
+            color: #0f172a !important;
+            display: block;
+            font-size: 0.92rem;
+            font-weight: 780;
+            line-height: 1.25;
+            overflow-wrap: anywhere;
+        }
         .stRadio label,
         .stSlider label,
         .stSlider [data-testid="stMarkdownContainer"] p {
@@ -1128,6 +1405,9 @@ def apply_theme() -> None:
             .metric-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
+            .room-summary {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
         }
         @media (max-width: 720px) {
             .block-container {
@@ -1138,6 +1418,9 @@ def apply_theme() -> None:
                 font-size: 1.85rem;
             }
             .metric-grid {
+                grid-template-columns: 1fr;
+            }
+            .room-summary {
                 grid-template-columns: 1fr;
             }
         }
