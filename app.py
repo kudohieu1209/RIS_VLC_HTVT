@@ -1166,14 +1166,19 @@ def apply_theme() -> None:
             color: #17212b;
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
         }
-        .stApp, .stApp p, .stApp span, .stApp label,
+        .stApp,
+        .stApp p,
+        .stApp label,
+        [data-testid="stMarkdownContainer"],
+        [data-testid="stSidebar"] {
+            color: #17212b !important;
+        }
+        .stApp p,
+        .stApp label,
         .stApp button,
         .stApp input,
         .stApp textarea,
-        [data-testid="stMarkdownContainer"],
-        [data-testid="stSidebar"],
-        [data-testid="stSidebar"] * {
-            color: #17212b !important;
+        [data-testid="stMarkdownContainer"] {
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif !important;
         }
         [data-testid="stSidebar"] {
