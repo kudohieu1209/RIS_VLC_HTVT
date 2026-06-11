@@ -1338,6 +1338,7 @@ def apply_theme() -> None:
         }
         .hero {
             border-bottom: 1px solid var(--border-color);
+            overflow: visible;
             padding: 0 0 0.85rem 0;
             margin-bottom: 0.65rem;
         }
@@ -1352,10 +1353,12 @@ def apply_theme() -> None:
         .hero h1 {
             color: #0f172a !important;
             font-size: 2.35rem;
-            line-height: 1.08;
+            line-height: 1.28;
             font-weight: 780;
             margin: 0;
             max-width: 980px;
+            overflow: visible;
+            padding: 0.35rem 0 0.08rem 0 !important;
         }
         .hero-meta {
             display: flex;
