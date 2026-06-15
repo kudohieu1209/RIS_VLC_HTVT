@@ -1,78 +1,86 @@
-from __future__ import annotations
+# Tham số đầu vào hệ thống 
 
-import json
+from __future__ import annotations # python hiểu phần khai báo dữ liệu hiện đại hơn
+
+import json # đọc file .json
 from dataclasses import dataclass, fields, replace
-from pathlib import Path
-from typing import Any
+from pathlib import Path # xử lý đường dẫn file, thư mục
+from typing import Any # Any hỗ trợ kiểu dữ liệu nào cũng đc 
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
 VECTOR_3D_FIELDS = {
     "ap_position",
     "pd_position",
-    "obstacle_min",
-    "obstacle_max",
-    "ris_default_position",
-    "ris_normal",
+    "ris_default_position", 
+    "ris_normal", # vector pháp tuyến của RIS
+    # xác định mô hình 3D của vật cản 
+    "obstacle_min", # tọa độ của góc nhỏ nhất của vật cản
+    "obstacle_max", # tọa độ của góc lớn nhất của vật cản
 }
 
-
+# Cấu hình trung tâm cho toàn bộ mô phỏng RIS-VLC
 @dataclass(frozen=True)
 class SimulationConfig:
-    """Central configuration for the RIS-assisted VLC simulation."""
 
-    # Project paths
+    # Project Path 
     base_dir: Path = PROJECT_ROOT
     figures_dir: Path = PROJECT_ROOT / "figures"
     results_dir: Path = PROJECT_ROOT / "results"
 
-    # Room geometry, in meters
+    # Kích thước phòng (mét)
     room_length: float = 5.0
     room_width: float = 5.0
     room_height: float = 3.0
 
-    # Main node positions, in meters
+    # Vị trí AP, PD và mặt phẳng người dùng 
     ap_position: tuple[float, float, float] = (2.5, 2.5, 3.0)
     pd_position: tuple[float, float, float] = (2.5, 1.0, 0.85)
     user_plane_z: float = 0.85
-
-    # Rectangular obstacle modeled as an axis-aligned box, in meters.
-    # It is placed between AP and the default PD so the basic LoS link is blocked.
+    
+    # Vật cản 
     obstacle_min: tuple[float, float, float] = (2.15, 1.65, 0.85)
     obstacle_max: tuple[float, float, float] = (2.85, 1.95, 2.45)
 
-    # RIS is fixed on the wall y = 0 and faces the room along +y.
-    ris_wall_y: float = 0.0
-    ris_default_position: tuple[float, float, float] = (2.5, 0.0, 1.6)
-    ris_normal: tuple[float, float, float] = (0.0, 1.0, 0.0)
-    ris_effective_area: float = 2.0
-    ris_reflection_coefficient: float = 0.8
-    ris_alignment_gain: float = 1.0
+    # Tham số RIS 
+    ris_wall_y: float = 0.0                                             # RIS được đặt trên tường y=0
+    ris_default_position: tuple[float, float, float] = (2.5, 0.0, 1.6)  # Vị trí mặc định của RIS
+    ris_normal: tuple[float, float, float] = (0.0, 1.0, 0.0)            # Vector pháp tuyến của RIS
+    ris_effective_area: float = 2.0                                     # Diện tích hiệu dụng của RIS
+    ris_reflection_coefficient: float = 0.8                             # Hệ số phản xạ của RIS (0->1)
+    ris_alignment_gain: float = 1.0                                     # Hệ số căn chỉnh hướng phản xạ của RIS (0->1)
 
-    # Optical and communication parameters
-    led_transmit_power_w: float = 1.0
-    pd_area_m2: float = 1e-4
-    led_half_power_angle_deg: float = 60.0
-    pd_fov_deg: float = 70.0
-    optical_filter_gain: float = 1.0
-    optical_concentrator_index: float = 1.5
-    pd_responsivity_a_per_w: float = 0.53
-    modulation_bandwidth_hz: float = 20e6
-    noise_variance: float = 1e-14
-    snr_threshold_db: float = 10.0
-
-    # Sweep settings
+    # Tham số quang học và truyền thông 
+    led_transmit_power_w: float = 1.0        # P_LED (W)
+    pd_area_m2: float = 1e-4                 # A_PD (m^2)
+    led_half_power_angle_deg: float = 60.0   # Góc bán công suất của LED
+    pd_fov_deg: float = 70.0                 # Góc nhìn của PD, FoV
+    optical_filter_gain: float = 1.0         # Độ lợi bộ lọc quang; 1.0 ~ bỏ qua suy hao/lợi của bộ lọc
+    optical_concentrator_index: float = 1.5  # Chiết suất n của bộ tập trung quang; dùng để tính gain G(ψ)
+    pd_responsivity_a_per_w: float = 0.53    # Độ đáp ứng của PD, đổi công suất quang sang dòng điện (A/W)
+    modulation_bandwidth_hz: float = 20e6    # Băng thông điều chế của hệ thống (Hz)
+    noise_variance: float = 1e-14            # Phương sai nhiễu điện tại PD (A^2)
+    snr_threshold_db: float = 10.0           # Ngưỡng SNR yêu cầu để coi liên kết đạt chất lượng (dB)
+    
+    # Tham số lưới tìm kiếm vị trí RIS tối ưu
+    # khoảng quét trục x
     ris_x_min: float = 0.5
     ris_x_max: float = 4.5
+    
+    # khoảng quét trục z
     ris_z_min: float = 0.5
     ris_z_max: float = 2.8
+    
+    # số điểm quét trên trục x, z
     ris_x_points: int = 61
     ris_z_points: int = 61
+    
+    # Lưới vị trí PD 
+    pd_grid_points: int = 70     # tổng số vị trí PD để kiểm tra: 70 x 70 
+    pd_grid_margin: float = 0.1  # khoảng cách từ lưới PD đến tường -> tránh PD quá gần tường
 
-    pd_grid_points: int = 70
-    pd_grid_margin: float = 0.1
-
-    # Plotting only: replace -inf SNR with this value so heatmaps remain readable.
+    # Giá trị sàn khi vẽ: nếu SNR = -inf thì thay bằng -60 dB để heatmap dễ hiển thị
     snr_plot_floor_db: float = -60.0
 
 
@@ -152,6 +160,10 @@ def validate_config(config: SimulationConfig) -> None:
         raise ValueError("ris_x_min must be smaller than ris_x_max.")
     if config.ris_z_min >= config.ris_z_max:
         raise ValueError("ris_z_min must be smaller than ris_z_max.")
+    if config.ris_x_min < 0.0 or config.ris_x_max > config.room_length:
+        raise ValueError("RIS x scan range must be within [0, room_length].")
+    if config.ris_z_min < 0.0 or config.ris_z_max > config.room_height:
+        raise ValueError("RIS z scan range must be within [0, room_height].")
     if config.pd_grid_margin < 0.0:
         raise ValueError("pd_grid_margin must be non-negative.")
     if config.pd_grid_margin * 2.0 >= min(config.room_length, config.room_width):
